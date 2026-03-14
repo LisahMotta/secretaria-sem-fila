@@ -29,11 +29,15 @@ export async function buscarEstatisticas() {
   if (!res.ok) throw new Error("Erro ao carregar estatísticas.");
   return res.json();
 }
+
+export async function buscarSlotsOcupados(data) {
   const res = await fetch(`${BASE}/agendamentos/slots?data=${data}`);
   if (!res.ok) return [];
   const json = await res.json();
   return json.ocupados || [];
 }
+
+export async function atualizarStatus(id, status) {
   const res = await fetchAuth(`${BASE}/agendamentos/${id}/status`, {
     method: "PATCH",
     body: JSON.stringify({ status }),
