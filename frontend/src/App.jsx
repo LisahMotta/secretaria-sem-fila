@@ -15,7 +15,7 @@ const SERVICES = [
   { id:"historico",  emoji:"📄", title:"Histórico Escolar",       desc:"Solicitação de histórico escolar",               time:null,     docs:[] },
   { id:"declaracao", emoji:"📋", title:"Declaração de Matrícula", desc:"Comprovação de vínculo do aluno",                time:"10 min", docs:["RG do responsável"] },
   { id:"passe",      emoji:"🚌", title:"Passe Escolar",           desc:"Solicitação de passe no sistema de bilhetagem",  time:null,     docs:["RG do aluno","Comprovante de endereço"] },
-  { id:"boletim",    emoji:"📊", title:"Boletim Escolar",         desc:"Acesse online pela Sala do Futuro",              time:null,     docs:[], external:true, externalUrl:"https://www.saladofuturo.educacao.sp.gov.br" },
+  { id:"boletim",    emoji:"📊", title:"Boletim Escolar",         desc:"Acesse online pela Sala do Futuro",              time:null,     docs:[], external:true, externalUrl:"https://saladofuturo.educacao.sp.gov.br/escolha-de-perfil" },
   { id:"documentos", emoji:"📁", title:"Entrega de Documentos",   desc:"Protocolo de documentos para a secretaria",     time:"15 min", docs:["Documentos a entregar"] },
   { id:"outros",     emoji:"💬", title:"Outros Atendimentos",     desc:"Reunião com direção, coordenação e outros",      time:null,     docs:[] },
 ];
