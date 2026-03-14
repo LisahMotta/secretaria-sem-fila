@@ -1,3 +1,5 @@
+import { fetchAuth } from "./auth.js";
+
 const BASE = import.meta.env.VITE_API_URL || "/api";
 
 export async function criarAgendamento(payload) {
@@ -17,15 +19,14 @@ export async function listarAgendamentos({ data, status } = {}) {
   const params = new URLSearchParams();
   if (data)   params.set("data", data);
   if (status) params.set("status", status);
-  const res = await fetch(`${BASE}/agendamentos?${params}`);
+  const res = await fetchAuth(`${BASE}/agendamentos?${params}`);
   if (!res.ok) throw new Error("Erro ao carregar agendamentos.");
   return res.json();
 }
 
 export async function atualizarStatus(id, status) {
-  const res = await fetch(`${BASE}/agendamentos/${id}/status`, {
+  const res = await fetchAuth(`${BASE}/agendamentos/${id}/status`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ status }),
   });
   if (!res.ok) throw new Error("Erro ao atualizar status.");

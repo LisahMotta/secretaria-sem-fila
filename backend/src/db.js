@@ -37,7 +37,29 @@ export async function initDB() {
         tipo      TEXT NOT NULL DEFAULT 'secretaria',
         criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
+
+      CREATE TABLE IF NOT EXISTS usuarios (
+        id         SERIAL PRIMARY KEY,
+        usuario    TEXT UNIQUE NOT NULL,
+        senha_hash TEXT NOT NULL,
+        nome       TEXT NOT NULL,
+        criado_em  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
     `);
+
+    // Cria usuário padrão se não existir nenhum
+    const { rows } = await client.query("SELECT COUNT(*) FROM usuarios");
+    if (parseInt(rows[0].count) === 0) {
+      const bcrypt = await import("bcryptjs");
+      const senhaInicial = process.env.ADMIN_PASSWORD || "secretaria123";
+      const hash = await bcrypt.default.hash(senhaInicial, 10);
+      await client.query(
+        "INSERT INTO usuarios (usuario, senha_hash, nome) VALUES ($1, $2, $3)",
+        ["secretaria", hash, "Secretaria"]
+      );
+      console.log("Usuário padrão criado: secretaria / " + senhaInicial);
+    }
+
     console.log("Banco de dados inicializado.");
   } finally {
     client.release();

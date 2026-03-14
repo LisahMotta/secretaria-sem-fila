@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { listarAgendamentos, atualizarStatus } from "../api.js";
 import { registrarPushSecretaria } from "../push.js";
+import { removeToken, getNome, trocarSenha } from "../auth.js";
 
 const C = {
   navy:"#1B3A6B", green:"#2E8B3A", orange:"#E87820",
@@ -32,6 +33,17 @@ export default function PainelSecretaria({ onVoltar }) {
   const [erro, setErro]                 = useState("");
   const [pushAtivo, setPushAtivo]       = useState(false);
   const [atualizando, setAtualizando]   = useState(null);
+  const [modalSenha, setModalSenha]     = useState(false);
+  const [senhaAtual, setSenhaAtual]     = useState("");
+  const [novaSenha, setNovaSenha]       = useState("");
+  const [erroSenha, setErroSenha]       = useState("");
+  const [okSenha, setOkSenha]           = useState("");
+  const nome = getNome();
+
+  function handleLogout() {
+    removeToken();
+    onVoltar();
+  }
 
   const carregar = useCallback(async () => {
     setCarregando(true);
@@ -93,14 +105,73 @@ export default function PainelSecretaria({ onVoltar }) {
               cursor:"pointer", fontFamily:"'Nunito',sans-serif" }}>
             {pushAtivo ? "🔔 Push ativo" : "🔕 Ativar push"}
           </button>
-          <button onClick={onVoltar}
+          <button onClick={() => setModalSenha(true)}
             style={{ background:"transparent", border:`2px solid ${C.gray200}`,
               borderRadius:10, padding:"7px 14px", fontSize:12, fontWeight:700,
               cursor:"pointer", color:C.gray600, fontFamily:"'Nunito',sans-serif" }}>
-            ← Sair
+            🔑 Senha
+          </button>
+          <button onClick={handleLogout}
+            style={{ background:"#FEF0EE", border:`2px solid rgba(220,38,38,0.3)`,
+              borderRadius:10, padding:"7px 14px", fontSize:12, fontWeight:700,
+              cursor:"pointer", color:C.red, fontFamily:"'Nunito',sans-serif" }}>
+            Sair
           </button>
         </div>
       </div>
+
+      {/* Modal trocar senha */}
+      {modalSenha && (
+        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.5)",
+          display:"flex", alignItems:"center", justifyContent:"center", zIndex:100, padding:16 }}>
+          <div style={{ background:C.white, borderRadius:20, padding:"28px 24px",
+            width:"100%", maxWidth:380, boxShadow:"0 8px 32px rgba(0,0,0,0.2)" }}>
+            <div style={{ fontWeight:900, fontSize:18, color:C.navy, marginBottom:20 }}>
+              🔑 Trocar senha
+            </div>
+            <div style={{ marginBottom:12 }}>
+              <label style={{ fontSize:12, fontWeight:700, color:C.gray600, display:"block", marginBottom:6 }}>Senha atual</label>
+              <input type="password" value={senhaAtual} onChange={e => setSenhaAtual(e.target.value)}
+                placeholder="Senha atual"
+                style={{ width:"100%", border:`2px solid ${C.gray200}`, borderRadius:10,
+                  padding:"11px 14px", fontFamily:"'Nunito',sans-serif", fontSize:14,
+                  color:C.gray800, outline:"none", boxSizing:"border-box" }} />
+            </div>
+            <div style={{ marginBottom:16 }}>
+              <label style={{ fontSize:12, fontWeight:700, color:C.gray600, display:"block", marginBottom:6 }}>Nova senha (mín. 6 caracteres)</label>
+              <input type="password" value={novaSenha} onChange={e => setNovaSenha(e.target.value)}
+                placeholder="Nova senha"
+                style={{ width:"100%", border:`2px solid ${C.gray200}`, borderRadius:10,
+                  padding:"11px 14px", fontFamily:"'Nunito',sans-serif", fontSize:14,
+                  color:C.gray800, outline:"none", boxSizing:"border-box" }} />
+            </div>
+            {erroSenha && <div style={{ color:C.red, fontSize:13, marginBottom:10 }}>⚠️ {erroSenha}</div>}
+            {okSenha   && <div style={{ color:C.green, fontSize:13, marginBottom:10 }}>✅ {okSenha}</div>}
+            <div style={{ display:"flex", gap:8 }}>
+              <button onClick={async () => {
+                setErroSenha(""); setOkSenha("");
+                try {
+                  await trocarSenha(senhaAtual, novaSenha);
+                  setOkSenha("Senha alterada com sucesso!");
+                  setSenhaAtual(""); setNovaSenha("");
+                  setTimeout(() => setModalSenha(false), 1500);
+                } catch (e) { setErroSenha(e.message); }
+              }}
+                style={{ flex:1, background:C.navy, color:"#fff", border:"none",
+                  borderRadius:10, padding:"11px", fontFamily:"'Nunito',sans-serif",
+                  fontSize:14, fontWeight:800, cursor:"pointer" }}>
+                Salvar
+              </button>
+              <button onClick={() => { setModalSenha(false); setErroSenha(""); setOkSenha(""); setSenhaAtual(""); setNovaSenha(""); }}
+                style={{ flex:1, background:"transparent", color:C.gray600,
+                  border:`2px solid ${C.gray200}`, borderRadius:10, padding:"11px",
+                  fontFamily:"'Nunito',sans-serif", fontSize:14, fontWeight:700, cursor:"pointer" }}>
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div style={{ maxWidth:700, margin:"0 auto", padding:"20px 16px 60px" }}>
 

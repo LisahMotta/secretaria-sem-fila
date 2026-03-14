@@ -1,6 +1,8 @@
 import { useState } from "react";
 import PainelSecretaria from "./components/PainelSecretaria.jsx";
+import TelaLogin from "./components/TelaLogin.jsx";
 import { criarAgendamento } from "./api.js";
+import { estaLogado } from "./auth.js";
 
 const C = {
   navy:"#1B3A6B", navyDk:"#122850", green:"#2E8B3A", greenLt:"#3aaa48",
@@ -405,6 +407,7 @@ export default function App() {
   const [saving, setSaving]               = useState(false);
   const [saveError, setSaveError]         = useState("");
   const [painelAberto, setPainelAberto]   = useState(false);
+  const [loginAberto, setLoginAberto]     = useState(false);
 
   const needsStudent   = !!(service && !service.external);
   const needsDocs      = service?.id === "documentos";
@@ -540,12 +543,17 @@ export default function App() {
     <div style={{ minHeight:"100vh", background:C.bg, fontFamily:"'Nunito','Segoe UI',sans-serif", color:C.gray800 }}>
       <style>{CSS}</style>
 
+      {/* TELA DE LOGIN */}
+      {loginAberto && !estaLogado() && (
+        <TelaLogin onLogin={() => { setPainelAberto(true); setLoginAberto(false); }} />
+      )}
+
       {/* PAINEL DA SECRETARIA */}
-      {painelAberto && (
+      {painelAberto && estaLogado() && (
         <PainelSecretaria onVoltar={() => setPainelAberto(false)} />
       )}
 
-      {!painelAberto && (
+      {!painelAberto && !loginAberto && (
       <>
 
       {/* HEADER */}
@@ -556,7 +564,7 @@ export default function App() {
         <div style={{ display:"flex", gap:8, alignItems:"center" }}>
           <span className="badge-blue">🔒 LGPD</span>
           <span className="badge-orange">⚠️ Sem transferências</span>
-          <button onClick={() => setPainelAberto(true)}
+          <button onClick={() => { estaLogado() ? setPainelAberto(true) : setLoginAberto(true); }}
             style={{ background:C.navy, color:"#fff", border:"none", borderRadius:8,
               padding:"5px 12px", fontSize:11, fontWeight:800, cursor:"pointer",
               fontFamily:"'Nunito',sans-serif" }}>

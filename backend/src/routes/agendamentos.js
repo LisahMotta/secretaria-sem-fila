@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { pool } from "../db.js";
 import { enviarPushSecretaria } from "../push.js";
+import { verificarToken } from "./auth.js";
 
 export const router = Router();
 
@@ -55,8 +56,8 @@ router.post("/", async (req, res) => {
   }
 });
 
-// Listar agendamentos (painel da secretaria)
-router.get("/", async (req, res) => {
+// Listar agendamentos (painel da secretaria) — protegido
+router.get("/", verificarToken, async (req, res) => {
   const { data, status } = req.query;
   let query = "SELECT * FROM agendamentos WHERE 1=1";
   const params = [];
@@ -81,8 +82,8 @@ router.get("/", async (req, res) => {
   }
 });
 
-// Atualizar status (confirmar / cancelar)
-router.patch("/:id/status", async (req, res) => {
+// Atualizar status (confirmar / cancelar) — protegido
+router.patch("/:id/status", verificarToken, async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
 
