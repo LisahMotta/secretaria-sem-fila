@@ -14,7 +14,7 @@ const C = {
 const SERVICES = [
   { id:"historico",  emoji:"📄", title:"Histórico Escolar",       desc:"Solicitação de histórico escolar",               time:null,     docs:[] },
   { id:"declaracao", emoji:"📋", title:"Declaração de Matrícula", desc:"Comprovação de vínculo do aluno",                time:"10 min", docs:["RG do responsável"] },
-  { id:"passe",      emoji:"🚌", title:"Passe Escolar",           desc:"Solicitação de passe no sistema de bilhetagem",  time:null,     docs:["RG do aluno","Comprovante de endereço"] },
+  { id:"passe",      emoji:"🚌", title:"Passe Escolar",           desc:"Informe à secretaria que já fez o cadastro no Consórcio 123 e aguarda aprovação", time:null, docs:[] },
   { id:"boletim",    emoji:"📊", title:"Boletim Escolar",         desc:"Acesse online pela Sala do Futuro",              time:null,     docs:[], external:true, externalUrl:"https://saladofuturo.educacao.sp.gov.br/escolha-de-perfil" },
   { id:"documentos", emoji:"📁", title:"Entrega de Documentos",   desc:"Protocolo de documentos para a secretaria",     time:"15 min", docs:["Documentos a entregar"] },
   { id:"outros",     emoji:"💬", title:"Outros Atendimentos",     desc:"Reunião com direção, coordenação e outros",      time:null,     docs:[] },
@@ -362,28 +362,53 @@ function BlocoPasse() {
   return (
     <div style={{ background:"#EFF6FF", border:"2px solid #3B82F6", borderRadius:16, padding:"18px 16px", marginBottom:14 }}>
       <div style={{ fontSize:11, fontWeight:800, letterSpacing:"1.5px", textTransform:"uppercase", marginBottom:14, color:"#1D4ED8" }}>
-        🚌 Passe Escolar — Sistema de Bilhetagem
+        🚌 Passe Escolar — Aprovação de Cadastro
       </div>
 
-      <div style={{ background:C.white, border:"1px solid #BFDBFE", borderRadius:10, padding:"12px 14px", marginBottom:14, borderLeft:"4px solid #3B82F6" }}>
-        <p style={{ fontSize:12, color:C.gray600, lineHeight:1.65 }}>
-          Ao confirmar, a secretaria receberá sua solicitação com <strong style={{ color:"#1D4ED8" }}>data e hora registradas automaticamente</strong> para dar entrada no sistema de bilhetagem eletrônica da SEDUC-SP.
+      {/* Passo 1 — Cadastro no Consórcio */}
+      <div style={{ background:C.white, border:"2px solid #BFDBFE", borderRadius:12, padding:"14px 16px", marginBottom:10 }}>
+        <div style={{ fontSize:12, fontWeight:800, color:"#1D4ED8", marginBottom:6 }}>
+          Passo 1 — Faça o cadastro no site do Consórcio 123
+        </div>
+        <p style={{ fontSize:12, color:C.gray600, lineHeight:1.65, marginBottom:12 }}>
+          O responsável deve primeiro acessar o site do Consórcio 123 e realizar o cadastro do aluno. Após o cadastro, volte aqui para avisar a secretaria.
+        </p>
+        <a
+          href="https://consorcio123sjc.com.br/"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ display:"inline-flex", alignItems:"center", gap:8,
+            background:"#1D4ED8", color:"#fff", textDecoration:"none",
+            borderRadius:10, padding:"10px 18px",
+            fontSize:13, fontWeight:800, fontFamily:"'Nunito',sans-serif" }}>
+          🌐 Acessar site do Consórcio 123
+        </a>
+      </div>
+
+      {/* Passo 2 — Avisar a secretaria */}
+      <div style={{ background:"#DBEAFE", borderRadius:12, padding:"14px 16px", marginBottom:10 }}>
+        <div style={{ fontSize:12, fontWeight:800, color:"#1D4ED8", marginBottom:8 }}>
+          Passo 2 — Avise a secretaria que já fez o cadastro
+        </div>
+        <p style={{ fontSize:12, color:"#1E2D3D", lineHeight:1.65 }}>
+          Ao confirmar este agendamento, a secretaria receberá sua notificação com <strong style={{ color:"#1D4ED8" }}>data e hora registradas</strong> e irá aprovar seu cadastro no sistema do Consórcio 123.
         </p>
       </div>
 
-      <div style={{ background:"#DBEAFE", borderRadius:12, padding:"14px 16px", display:"flex", alignItems:"center", gap:14 }}>
-        <div style={{ fontSize:32 }}>🗓️</div>
+      {/* Data/hora do registro */}
+      <div style={{ background:C.white, border:"1px solid #BFDBFE", borderRadius:10, padding:"12px 14px", display:"flex", alignItems:"center", gap:12 }}>
+        <div style={{ fontSize:28 }}>🗓️</div>
         <div>
-          <div style={{ fontSize:11, fontWeight:700, color:"#1D4ED8", textTransform:"uppercase", letterSpacing:"1px", marginBottom:4 }}>
-            Data e hora da solicitação
+          <div style={{ fontSize:11, fontWeight:700, color:"#1D4ED8", textTransform:"uppercase", letterSpacing:"1px", marginBottom:3 }}>
+            Data do aviso à secretaria
           </div>
-          <div style={{ fontSize:16, fontWeight:900, color:"#1E2D3D" }}>{dataHoje}</div>
-          <div style={{ fontSize:13, color:"#4A6080", marginTop:2 }}>às {horaAgora} — registrado automaticamente</div>
+          <div style={{ fontSize:15, fontWeight:900, color:"#1E2D3D" }}>{dataHoje}</div>
+          <div style={{ fontSize:12, color:C.gray400, marginTop:2 }}>às {horaAgora} — registrado automaticamente</div>
         </div>
       </div>
 
-      <div style={{ marginTop:12, padding:"10px 12px", background:C.white, border:"1px solid #BFDBFE", borderRadius:10, fontSize:12, color:C.gray600, lineHeight:1.6 }}>
-        📞 Após o registro, a secretaria analisará a solicitação e <strong style={{ color:"#1D4ED8" }}>entrará em contato pelo telefone informado</strong> para confirmar o andamento no sistema de bilhetagem.
+      <div style={{ marginTop:10, padding:"10px 12px", background:C.white, border:"1px solid #BFDBFE", borderRadius:10, fontSize:12, color:C.gray600, lineHeight:1.6 }}>
+        📞 Após o aviso, a secretaria aprovará o cadastro e <strong style={{ color:"#1D4ED8" }}>entrará em contato pelo telefone informado</strong> para confirmar a aprovação.
       </div>
     </div>
   );
@@ -453,7 +478,7 @@ export default function App() {
       ...(needsDocs      ? { doc_types: docType }      : {}),
       ...(needsOthers    ? { outros: outrosInfo }       : {}),
       ...(needsHistorico ? { historico: historicoInfo } : {}),
-      ...(needsPasse     ? { passe: { solicitadoEm: new Date().toISOString(), sistema:"bilhetagem_eletronica" } } : {}),
+      ...(needsPasse     ? { passe: { avisadoEm: new Date().toISOString(), sistema:"consorcio123" } } : {}),
       ...(needsStudent   ? { student: { name:studentInfo.studentName, grade:studentInfo.grade,
           lgpd_guardian_consent:true, lgpd_consent_at:new Date().toISOString(),
           data_purpose: purposeMap[service.id] || "atendimento_geral",
@@ -544,7 +569,7 @@ export default function App() {
     needsHistorico && historicoInfo.anoConclusao      ? { label:"Ano conclusão",       value:historicoInfo.anoConclusao,       icon:"📅" } : null,
     needsHistorico && historicoInfo.anoSaida          ? { label:"Ano de saída",        value:historicoInfo.anoSaida,           icon:"📅" } : null,
     needsHistorico && historicoInfo.serieTransferencia? { label:"Série transferência", value:historicoInfo.serieTransferencia, icon:"📚" } : null,
-    needsPasse ? { label:"Registro bilhetagem", icon:"🚌",
+    needsPasse ? { label:"Aviso de cadastro", icon:"🚌",
       value: new Date().toLocaleDateString("pt-BR", { day:"2-digit", month:"2-digit", year:"numeric" }) + " às " + new Date().toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" }) } : null,
     needsOthers && outrosInfo.assunto   ? { label:"Com quem", value: ASSUNTO_LABEL[outrosInfo.assunto] || "—", icon:"💬" } : null,
     needsOthers && outrosInfo.periodo   ? { label:"Período",  value: PERIODO_LABEL[outrosInfo.periodo]  || "—", icon:"🕐" } : null,
@@ -951,13 +976,13 @@ export default function App() {
             {needsStudent && (
               <div style={{ background:"#EBF5EC", border:"2px solid rgba(46,139,58,0.3)", borderRadius:14, padding:"14px 16px", marginBottom:24, textAlign:"left" }}>
                 <div style={{ fontWeight:800, color:C.green, fontSize:14, marginBottom:6 }}>
-                  {needsHistorico ? "📞 A secretaria entrará em contato" : needsPasse ? "🚌 Solicitação registrada no sistema" : "⚡ Atendimento pré-preparado"}
+                  {needsHistorico ? "📞 A secretaria entrará em contato" : needsPasse ? "🚌 Aviso enviado para a secretaria" : "⚡ Atendimento pré-preparado"}
                 </div>
                 <p style={{ fontSize:13, color:C.gray600, lineHeight:1.6 }}>
                   {needsHistorico
                     ? "A secretaria verificará o histórico e ligará para informar se está pronto ou se há algum documento pendente."
                     : needsPasse
-                    ? "A solicitação foi registrada com data e hora para dar entrada no sistema de bilhetagem eletrônica. A secretaria entrará em contato para confirmar o andamento."
+                    ? "A secretaria recebeu seu aviso e irá aprovar seu cadastro no sistema do Consórcio 123. Ela entrará em contato pelo telefone informado para confirmar a aprovação."
                     : "A secretaria já recebeu os dados do aluno e pode preparar o atendimento antes da sua chegada."}
                 </p>
                 <div style={{ marginTop:10, paddingTop:10, borderTop:"1px solid rgba(46,139,58,0.15)", fontSize:11, color:C.gray400, display:"flex", gap:6 }}>
