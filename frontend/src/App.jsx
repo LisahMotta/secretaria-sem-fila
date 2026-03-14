@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import PainelSecretaria from "./components/PainelSecretaria.jsx";
 import TelaLogin from "./components/TelaLogin.jsx";
 import { criarAgendamento, buscarSlotsOcupados } from "./api.js";
@@ -405,10 +405,22 @@ export default function App() {
   const [protocol, setProtocol]           = useState("");
   const [saving, setSaving]               = useState(false);
   const [saveError, setSaveError]         = useState("");
-  const [painelAberto, setPainelAberto]   = useState(false);
-  const [loginAberto, setLoginAberto]     = useState(false);
   const [slotsOcupados, setSlotsOcupados] = useState([]);
   const [loadingSlots, setLoadingSlots]   = useState(false);
+
+  // Detecta URL /painel ao carregar — abre login automaticamente
+  const rotaInicial = window.location.pathname === "/painel";
+  const [painelAberto, setPainelAberto]   = useState(rotaInicial && estaLogado());
+  const [loginAberto, setLoginAberto]     = useState(rotaInicial && !estaLogado());
+
+  // Mantém a URL /painel enquanto o painel estiver aberto
+  useEffect(() => {
+    if (painelAberto || loginAberto) {
+      window.history.replaceState(null, "", "/painel");
+    } else {
+      window.history.replaceState(null, "", "/");
+    }
+  }, [painelAberto, loginAberto]);
 
   const needsStudent   = !!(service && !service.external);
   const needsDocs      = service?.id === "documentos";
@@ -565,12 +577,6 @@ export default function App() {
         <div style={{ display:"flex", gap:8, alignItems:"center" }}>
           <span className="badge-blue">🔒 LGPD</span>
           <span className="badge-orange">⚠️ Sem transferências</span>
-          <button onClick={() => { estaLogado() ? setPainelAberto(true) : setLoginAberto(true); }}
-            style={{ background:C.navy, color:"#fff", border:"none", borderRadius:8,
-              padding:"5px 12px", fontSize:11, fontWeight:800, cursor:"pointer",
-              fontFamily:"'Nunito',sans-serif" }}>
-            Painel
-          </button>
         </div>
       </div>
 
