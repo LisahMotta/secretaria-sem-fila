@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { listarAgendamentos, atualizarStatus } from "../api.js";
 import { registrarPushSecretaria } from "../push.js";
 import { removeToken, getNome, trocarSenha } from "../auth.js";
+import Dashboard from "./Dashboard.jsx";
 
 const C = {
   navy:"#1B3A6B", green:"#2E8B3A", orange:"#E87820",
@@ -33,11 +34,13 @@ export default function PainelSecretaria({ onVoltar }) {
   const [erro, setErro]                 = useState("");
   const [pushAtivo, setPushAtivo]       = useState(false);
   const [atualizando, setAtualizando]   = useState(null);
+  const [aba, setAba]                   = useState("agendamentos");
   const [modalSenha, setModalSenha]     = useState(false);
   const [senhaAtual, setSenhaAtual]     = useState("");
   const [novaSenha, setNovaSenha]       = useState("");
   const [erroSenha, setErroSenha]       = useState("");
   const [okSenha, setOkSenha]           = useState("");
+  const [busca, setBusca]               = useState("");
   const nome = getNome();
 
   function handleLogout() {
@@ -84,6 +87,38 @@ export default function PainelSecretaria({ onVoltar }) {
       s, agendamentos.filter(a => a.status === s).length
     ])
   );
+
+  // Filtra localmente por busca (protocolo, nome do responsável ou nome do aluno)
+  const termoBusca = busca.trim().toLowerCase();
+  const agendamentosFiltrados = termoBusca
+    ? agendamentos.filter(a => {
+        const responsavel = typeof a.responsible === "string"
+          ? JSON.parse(a.responsible) : a.responsible;
+        const aluno = a.student
+          ? (typeof a.student === "string" ? JSON.parse(a.student) : a.student) : null;
+        return (
+          a.protocol?.toLowerCase().includes(termoBusca) ||
+          responsavel?.name?.toLowerCase().includes(termoBusca) ||
+          responsavel?.phone?.replace(/\D/g,"").includes(termoBusca.replace(/\D/g,"")) ||
+          aluno?.name?.toLowerCase().includes(termoBusca)
+        );
+      })
+    : agendamentos;
+
+  function destacar(texto) {
+    if (!termoBusca || !texto) return texto;
+    const idx = texto.toLowerCase().indexOf(termoBusca);
+    if (idx === -1) return texto;
+    return (
+      <>
+        {texto.slice(0, idx)}
+        <mark style={{ background:"#FEF08A", borderRadius:3, padding:"0 2px" }}>
+          {texto.slice(idx, idx + termoBusca.length)}
+        </mark>
+        {texto.slice(idx + termoBusca.length)}
+      </>
+    );
+  }
 
   return (
     <div style={{ fontFamily:"'Nunito',sans-serif", minHeight:"100vh", background:C.bg }}>
@@ -175,6 +210,30 @@ export default function PainelSecretaria({ onVoltar }) {
 
       <div style={{ maxWidth:700, margin:"0 auto", padding:"20px 16px 60px" }}>
 
+        {/* Abas de navegação */}
+        <div style={{ display:"flex", gap:4, marginBottom:20,
+          background:"#EBF0F9", borderRadius:12, padding:4 }}>
+          {[
+            { id:"agendamentos", label:"📋 Agendamentos" },
+            { id:"dashboard",   label:"📊 Dashboard" },
+          ].map(tab => (
+            <button key={tab.id} onClick={() => setAba(tab.id)}
+              style={{ flex:1, background: aba===tab.id ? C.navy : "transparent",
+                color: aba===tab.id ? "#fff" : C.gray600,
+                border:"none", borderRadius:9, padding:"9px 12px",
+                fontFamily:"'Nunito',sans-serif", fontSize:13, fontWeight:800,
+                cursor:"pointer", transition:"all 0.15s" }}>
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Dashboard */}
+        {aba === "dashboard" && <Dashboard />}
+
+        {/* Agendamentos */}
+        {aba === "agendamentos" && (<>
+
         {/* Contadores */}
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:8, marginBottom:20 }}>
           {Object.entries(STATUS_CONFIG).map(([s, cfg]) => (
@@ -189,7 +248,7 @@ export default function PainelSecretaria({ onVoltar }) {
         </div>
 
         {/* Filtro de data */}
-        <div style={{ display:"flex", gap:10, marginBottom:20, alignItems:"center" }}>
+        <div style={{ display:"flex", gap:10, marginBottom:12, alignItems:"center", flexWrap:"wrap" }}>
           <label style={{ fontSize:13, fontWeight:700, color:C.gray600 }}>Data:</label>
           <input type="date" value={filtroData}
             onChange={e => setFiltroData(e.target.value)}
@@ -209,6 +268,41 @@ export default function PainelSecretaria({ onVoltar }) {
           </button>
         </div>
 
+        {/* Campo de busca */}
+        <div style={{ position:"relative", marginBottom:20 }}>
+          <span style={{ position:"absolute", left:14, top:"50%", transform:"translateY(-50%)",
+            fontSize:16, pointerEvents:"none" }}>🔍</span>
+          <input
+            type="text"
+            placeholder="Buscar por protocolo, nome do responsável, aluno ou telefone..."
+            value={busca}
+            onChange={e => setBusca(e.target.value)}
+            style={{ width:"100%", border:`2px solid ${busca ? C.navy : C.gray200}`,
+              borderRadius:12, padding:"11px 40px 11px 40px",
+              fontFamily:"'Nunito',sans-serif", fontSize:14, color:C.gray800,
+              outline:"none", boxSizing:"border-box",
+              transition:"border-color 0.2s",
+              background: busca ? "#F0F4FF" : C.white }}
+          />
+          {busca && (
+            <button onClick={() => setBusca("")}
+              style={{ position:"absolute", right:12, top:"50%", transform:"translateY(-50%)",
+                background:"none", border:"none", cursor:"pointer", fontSize:16,
+                color:C.gray400, padding:0, lineHeight:1 }}>
+              ✕
+            </button>
+          )}
+        </div>
+
+        {/* Resultado da busca */}
+        {busca && (
+          <div style={{ fontSize:13, color:C.gray600, marginBottom:12, fontWeight:700 }}>
+            {agendamentosFiltrados.length === 0
+              ? "Nenhum resultado encontrado"
+              : `${agendamentosFiltrados.length} resultado${agendamentosFiltrados.length > 1 ? "s" : ""} para "${busca}"`}
+          </div>
+        )}
+
         {/* Lista */}
         {carregando && (
           <div style={{ textAlign:"center", padding:40, color:C.gray400, fontSize:14 }}>
@@ -221,13 +315,13 @@ export default function PainelSecretaria({ onVoltar }) {
             ⚠️ {erro}
           </div>
         )}
-        {!carregando && !erro && agendamentos.length === 0 && (
+        {!carregando && !erro && agendamentosFiltrados.length === 0 && (
           <div style={{ textAlign:"center", padding:40, color:C.gray400, fontSize:14 }}>
-            Nenhum agendamento encontrado.
+            {busca ? `Nenhum resultado para "${busca}"` : "Nenhum agendamento encontrado."}
           </div>
         )}
 
-        {agendamentos.map(a => {
+        {agendamentosFiltrados.map(a => {
           const cfg = STATUS_CONFIG[a.status] || STATUS_CONFIG.pendente;
           const responsavel = typeof a.responsible === "string"
             ? JSON.parse(a.responsible) : a.responsible;
@@ -259,15 +353,15 @@ export default function PainelSecretaria({ onVoltar }) {
               </div>
 
               <div style={{ fontSize:13, color:C.gray600, marginBottom:8 }}>
-                <strong style={{ color:C.gray800 }}>Responsável:</strong> {responsavel?.name} · {responsavel?.phone}
+                <strong style={{ color:C.gray800 }}>Responsável:</strong> {destacar(responsavel?.name)} · {responsavel?.phone}
               </div>
               {aluno && (
                 <div style={{ fontSize:13, color:C.gray600, marginBottom:8 }}>
-                  <strong style={{ color:C.gray800 }}>Aluno:</strong> {aluno.name} · {aluno.grade}
+                  <strong style={{ color:C.gray800 }}>Aluno:</strong> {destacar(aluno.name)} · {aluno.grade}
                 </div>
               )}
               <div style={{ fontSize:11, color:C.gray400, marginBottom:12 }}>
-                Protocolo: <strong style={{ color:C.navy }}>{a.protocol}</strong>
+                Protocolo: <strong style={{ color:C.navy }}>{destacar(a.protocol)}</strong>
               </div>
 
               {/* Ações */}
@@ -304,6 +398,8 @@ export default function PainelSecretaria({ onVoltar }) {
           );
         })}
       </div>
+
+      </>)}
     </div>
   );
 }

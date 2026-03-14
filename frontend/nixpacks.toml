@@ -1,5 +1,0 @@
-[phases.build]
-cmds = ["npm install", "./node_modules/.bin/vite build"]
-
-[start]
-cmd = "./node_modules/.bin/serve dist -l $PORT"

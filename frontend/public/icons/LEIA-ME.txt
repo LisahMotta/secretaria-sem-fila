@@ -1,0 +1,6 @@
+Coloque aqui dois arquivos:
+- icon-192.png  (192x192 pixels)
+- icon-512.png  (512x512 pixels)
+
+Dica gratuita: use canva.com
+Fundo azul marinho #1B3A6B com texto branco "SSF"

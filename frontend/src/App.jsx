@@ -1,7 +1,7 @@
 import { useState } from "react";
 import PainelSecretaria from "./components/PainelSecretaria.jsx";
 import TelaLogin from "./components/TelaLogin.jsx";
-import { criarAgendamento } from "./api.js";
+import { criarAgendamento, buscarSlotsOcupados } from "./api.js";
 import { estaLogado } from "./auth.js";
 
 const C = {
@@ -20,8 +20,7 @@ const SERVICES = [
   { id:"outros",     emoji:"💬", title:"Outros Atendimentos",     desc:"Reunião com direção, coordenação e outros",      time:null,     docs:[] },
 ];
 
-const SLOTS   = ["08:00","08:30","09:00","09:30","10:00","10:30","13:00","13:30","14:00","14:30","15:00","15:30"];
-const BLOCKED = ["09:00","13:00","15:00"];
+const SLOTS = ["08:00","08:30","09:00","09:30","10:00","10:30","13:00","13:30","14:00","14:30","15:00","15:30"];
 
 const DAYS = (() => {
   const days = [], now = new Date();
@@ -408,6 +407,8 @@ export default function App() {
   const [saveError, setSaveError]         = useState("");
   const [painelAberto, setPainelAberto]   = useState(false);
   const [loginAberto, setLoginAberto]     = useState(false);
+  const [slotsOcupados, setSlotsOcupados] = useState([]);
+  const [loadingSlots, setLoadingSlots]   = useState(false);
 
   const needsStudent   = !!(service && !service.external);
   const needsDocs      = service?.id === "documentos";
@@ -699,7 +700,30 @@ export default function App() {
                 </div>
               ))}
             </div>
-            <button className="btn-navy" disabled={!day} onClick={() => setStep(3)} style={{ width:"100%" }}>Continuar →</button>
+            <button className="btn-navy" disabled={!day || loadingSlots}
+              onClick={async () => {
+                setLoadingSlots(true);
+                setSlotsOcupados([]);
+                setSlot(null);
+                try {
+                  const dataStr = day.toISOString().split("T")[0];
+                  const ocupados = await buscarSlotsOcupados(dataStr);
+                  setSlotsOcupados(ocupados);
+                } catch (_) {
+                  setSlotsOcupados([]);
+                } finally {
+                  setLoadingSlots(false);
+                  setStep(3);
+                }
+              }}
+              style={{ width:"100%", display:"flex", alignItems:"center", justifyContent:"center", gap:10 }}>
+              {loadingSlots ? (
+                <>
+                  <span style={{ width:16, height:16, border:"2.5px solid rgba(255,255,255,0.4)", borderTopColor:"#fff", borderRadius:"50%", display:"inline-block", animation:"spin 0.7s linear infinite" }} />
+                  Verificando horários...
+                </>
+              ) : "Continuar →"}
+            </button>
           </div>
         )}
 
@@ -709,7 +733,8 @@ export default function App() {
             <StepHeader step={3} steps={steps} onBack={() => setStep(2)} />
             <h2 style={{ fontSize:22, fontWeight:900, color:C.navy, marginBottom:4 }}>Escolha o horário</h2>
             <p style={{ fontSize:14, color:C.gray400, marginBottom:8 }}>{day && fmtDay(day)}</p>
-            <div style={{ display:"flex", gap:12, marginBottom:18 }}>
+
+            <div style={{ display:"flex", gap:16, marginBottom:18, flexWrap:"wrap" }}>
               <div style={{ display:"flex", gap:6, alignItems:"center" }}>
                 <div style={{ width:12, height:12, borderRadius:3, background:C.green }} />
                 <span style={{ fontSize:12, color:C.gray600 }}>disponível</span>
@@ -718,19 +743,46 @@ export default function App() {
                 <div style={{ width:12, height:12, borderRadius:3, background:C.gray200 }} />
                 <span style={{ fontSize:12, color:C.gray600 }}>ocupado</span>
               </div>
+              <span style={{ fontSize:12, color:C.gray400 }}>
+                {slotsOcupados.length > 0
+                  ? `${slotsOcupados.length} horário${slotsOcupados.length > 1 ? "s" : ""} já agendado${slotsOcupados.length > 1 ? "s" : ""}`
+                  : "Todos os horários disponíveis"}
+              </span>
             </div>
+
             {[["Manhã", SLOTS.filter(s => parseInt(s) < 12)], ["Tarde", SLOTS.filter(s => parseInt(s) >= 12)]].map(([period, slots]) => (
               <div key={period} style={{ marginBottom:18 }}>
                 <div style={{ fontSize:11, fontWeight:800, color:C.gray400, letterSpacing:"1.5px", textTransform:"uppercase", marginBottom:10 }}>{period}</div>
                 <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:8 }}>
-                  {slots.map(s => (
-                    <button key={s} className={`slot-btn ${BLOCKED.includes(s) ? "blocked" : ""} ${slot === s ? "slot-sel" : ""}`}
-                      onClick={() => !BLOCKED.includes(s) && setSlot(s)}>{s}</button>
-                  ))}
+                  {slots.map(s => {
+                    const bloqueado = slotsOcupados.includes(s);
+                    const selecionado = slot === s;
+                    return (
+                      <button key={s}
+                        className={`slot-btn ${bloqueado ? "blocked" : ""} ${selecionado ? "slot-sel" : ""}`}
+                        onClick={() => !bloqueado && setSlot(s)}
+                        title={bloqueado ? "Horário já agendado" : "Clique para selecionar"}>
+                        {s}
+                        {bloqueado && (
+                          <div style={{ fontSize:9, color:C.gray400, marginTop:2 }}>ocupado</div>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             ))}
-            <button className="btn-navy" disabled={!slot} onClick={() => setStep(4)} style={{ width:"100%" }}>Continuar →</button>
+
+            {SLOTS.every(s => slotsOcupados.includes(s)) && (
+              <div style={{ background:"#FEF3EC", border:`2px solid rgba(232,120,32,0.3)`,
+                borderRadius:12, padding:"12px 16px", marginBottom:16, fontSize:13, color:C.orange, fontWeight:700 }}>
+                ⚠️ Todos os horários deste dia estão ocupados. Volte e escolha outra data.
+              </div>
+            )}
+
+            <button className="btn-navy" disabled={!slot} onClick={() => setStep(4)} style={{ width:"100%" }}>
+              Continuar →
+            </button>
           </div>
         )}
 

@@ -24,7 +24,16 @@ export async function listarAgendamentos({ data, status } = {}) {
   return res.json();
 }
 
-export async function atualizarStatus(id, status) {
+export async function buscarEstatisticas() {
+  const res = await fetchAuth(`${BASE}/agendamentos/estatisticas`);
+  if (!res.ok) throw new Error("Erro ao carregar estatísticas.");
+  return res.json();
+}
+  const res = await fetch(`${BASE}/agendamentos/slots?data=${data}`);
+  if (!res.ok) return [];
+  const json = await res.json();
+  return json.ocupados || [];
+}
   const res = await fetchAuth(`${BASE}/agendamentos/${id}/status`, {
     method: "PATCH",
     body: JSON.stringify({ status }),
