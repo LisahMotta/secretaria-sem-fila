@@ -157,6 +157,30 @@ export async function confirmarReagendamento(token, date, slot) {
   return res.json();
 }
 
+// ── Avaliação de atendimento ──────────────────────────────────
+export async function registrarAvaliacao(id, avaliacao) {
+  const res = await fetchAuth(`${BASE}/agendamentos/${id}/avaliacao`, {
+    method: "PATCH",
+    body: JSON.stringify({ avaliacao }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Erro ao salvar avaliação.");
+  }
+  return res.json();
+}
+
+// ── Relatório de faltas ───────────────────────────────────────
+export async function buscarFaltas({ data_inicio, data_fim, service } = {}) {
+  const params = new URLSearchParams();
+  if (data_inicio) params.set("data_inicio", data_inicio);
+  if (data_fim)    params.set("data_fim", data_fim);
+  if (service)     params.set("service", service);
+  const res = await fetchAuth(`${BASE}/agendamentos/relatorio/faltas?${params}`);
+  if (!res.ok) throw new Error("Erro ao carregar relatório de faltas.");
+  return res.json();
+}
+
 // ── Bloqueios ─────────────────────────────────────────────────
 export async function listarBloqueios() {
   const res = await fetchAuth(`${BASE}/bloqueios`);

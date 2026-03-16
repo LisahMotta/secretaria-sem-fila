@@ -66,6 +66,7 @@ export async function initDB() {
       );
 
       ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS notas JSONB DEFAULT '[]';
+      ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS avaliacao INT CHECK (avaliacao BETWEEN 1 AND 5);
 
       CREATE TABLE IF NOT EXISTS audit_log (
         id              SERIAL PRIMARY KEY,

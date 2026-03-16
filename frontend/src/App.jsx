@@ -434,6 +434,8 @@ export default function App() {
   const [slotsOcupados, setSlotsOcupados] = useState([]);
   const [diaBloqueado, setDiaBloqueado]   = useState(false);
   const [loadingSlots, setLoadingSlots]   = useState(false);
+  const [diasBloqueados, setDiasBloqueados] = useState({});
+  const [erroData, setErroData]           = useState("");
 
   // Detecta URL /painel ao carregar — abre login automaticamente
   const rotaInicial = window.location.pathname === "/painel";
@@ -461,6 +463,17 @@ export default function App() {
     setConsultaAberta(false); setModoConsulta(null); setTokenConsulta(null);
     window.history.replaceState(null, "", "/");
   }
+
+  // Pré-carrega dias bloqueados quando entra no step 2
+  useEffect(() => {
+    if (step !== 2) return;
+    Promise.all(
+      DAYS.map(d => {
+        const iso = d.toISOString().split("T")[0];
+        return buscarSlotsOcupados(iso).then(r => [iso, r.diaBloqueado || false]).catch(() => [iso, false]);
+      })
+    ).then(entries => setDiasBloqueados(Object.fromEntries(entries)));
+  }, [step]);
 
   // Mantém a URL /painel enquanto o painel estiver aberto
   useEffect(() => {
@@ -758,37 +771,68 @@ export default function App() {
             <h2 style={{ fontSize:22, fontWeight:900, color:C.navy, marginBottom:4 }}>Escolha a data</h2>
             <p style={{ fontSize:14, color:C.gray400, marginBottom:20 }}>Dias úteis disponíveis.</p>
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:24 }}>
-              {DAYS.map((d, i) => (
-                <div key={i} className={`ssf-card ${day?.toDateString() === d.toDateString() ? "sel-green" : ""}`}
-                  onClick={() => setDay(d)} style={{ padding:"16px 14px", textAlign:"center" }}>
-                  <div style={{ fontSize:11, fontWeight:800, color:C.gray400, textTransform:"uppercase", letterSpacing:"1px", marginBottom:6 }}>
-                    {d.toLocaleDateString("pt-BR", { weekday:"long" })}
+              {DAYS.map((d, i) => {
+                const iso = d.toISOString().split("T")[0];
+                const bloqueado = diasBloqueados[iso];
+                const selecionado = day?.toDateString() === d.toDateString();
+                return (
+                  <div key={i}
+                    className={`ssf-card ${selecionado && !bloqueado ? "sel-green" : ""}`}
+                    onClick={() => { if (!bloqueado) { setDay(d); setErroData(""); } }}
+                    style={{ padding:"16px 14px", textAlign:"center",
+                      opacity: bloqueado ? 0.5 : 1,
+                      cursor: bloqueado ? "not-allowed" : "pointer",
+                      background: bloqueado ? C.gray100 : undefined,
+                      position:"relative" }}>
+                    {bloqueado && (
+                      <div style={{ position:"absolute", top:6, right:8, fontSize:10, fontWeight:800,
+                        color:"#DC2626", background:"#FEF0EE", borderRadius:6, padding:"1px 6px" }}>
+                        🚫 bloqueado
+                      </div>
+                    )}
+                    <div style={{ fontSize:11, fontWeight:800, color: bloqueado ? C.gray400 : C.gray400, textTransform:"uppercase", letterSpacing:"1px", marginBottom:6 }}>
+                      {d.toLocaleDateString("pt-BR", { weekday:"long" })}
+                    </div>
+                    <div style={{ fontSize:30, fontWeight:900, color: bloqueado ? C.gray400 : selecionado ? C.green : C.navy, lineHeight:1 }}>
+                      {d.toLocaleDateString("pt-BR", { day:"2-digit" })}
+                    </div>
+                    <div style={{ fontSize:13, color:C.gray400, marginTop:4 }}>
+                      {d.toLocaleDateString("pt-BR", { month:"long" })}
+                    </div>
                   </div>
-                  <div style={{ fontSize:30, fontWeight:900, color: day?.toDateString() === d.toDateString() ? C.green : C.navy, lineHeight:1 }}>
-                    {d.toLocaleDateString("pt-BR", { day:"2-digit" })}
-                  </div>
-                  <div style={{ fontSize:13, color:C.gray400, marginTop:4 }}>
-                    {d.toLocaleDateString("pt-BR", { month:"long" })}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
+            {erroData && (
+              <div style={{ background:"#FEF0EE", border:"2px solid rgba(220,38,38,0.3)",
+                borderRadius:12, padding:"12px 16px", marginBottom:16, fontSize:13, color:"#DC2626", fontWeight:700 }}>
+                🚫 {erroData}
+              </div>
+            )}
             <button className="btn-navy" disabled={!day || loadingSlots}
               onClick={async () => {
                 setLoadingSlots(true);
                 setSlotsOcupados([]);
                 setDiaBloqueado(false);
+                setErroData("");
                 setSlot(null);
                 try {
                   const dataStr = day.toISOString().split("T")[0];
                   const result = await buscarSlotsOcupados(dataStr);
+                  if (result.diaBloqueado) {
+                    setDiaBloqueado(true);
+                    setDiasBloqueados(prev => ({ ...prev, [dataStr]: true }));
+                    setErroData("Este dia está bloqueado pela secretaria. Escolha outra data.");
+                    setDay(null);
+                    return;
+                  }
                   setSlotsOcupados(result.ocupados || []);
-                  setDiaBloqueado(result.diaBloqueado || false);
+                  setStep(3);
                 } catch (_) {
                   setSlotsOcupados([]);
+                  setStep(3);
                 } finally {
                   setLoadingSlots(false);
-                  setStep(3);
                 }
               }}
               style={{ width:"100%", display:"flex", alignItems:"center", justifyContent:"center", gap:10 }}>

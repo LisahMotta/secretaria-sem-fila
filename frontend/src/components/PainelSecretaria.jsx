@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { listarAgendamentos, atualizarStatus, adicionarNota, buscarHistorico, exportarCSV } from "../api.js";
+import { listarAgendamentos, atualizarStatus, adicionarNota, buscarHistorico, exportarCSV, registrarAvaliacao, buscarFaltas } from "../api.js";
 import { registrarPushSecretaria } from "../push.js";
 import { removeToken, getNome, trocarSenha, isAdmin } from "../auth.js";
 import Dashboard from "./Dashboard.jsx";
@@ -14,10 +14,11 @@ const C = {
 };
 
 const STATUS_CONFIG = {
-  pendente:   { label:"Pendente",   bg:"#FEF3EC", color:C.orange, border:"rgba(232,120,32,0.4)"  },
-  confirmado: { label:"Confirmado", bg:"#EBF5EC", color:C.green,  border:"rgba(46,139,58,0.4)"   },
-  cancelado:  { label:"Cancelado",  bg:"#FEF0EE", color:C.red,    border:"rgba(220,38,38,0.3)"   },
-  concluido:  { label:"Concluido",  bg:"#EBF0F9", color:C.navy,   border:"rgba(27,58,107,0.3)"   },
+  pendente:        { label:"Pendente",        bg:"#FEF3EC", color:C.orange, border:"rgba(232,120,32,0.4)"  },
+  confirmado:      { label:"Confirmado",      bg:"#EBF5EC", color:C.green,  border:"rgba(46,139,58,0.4)"   },
+  cancelado:       { label:"Cancelado",       bg:"#FEF0EE", color:C.red,    border:"rgba(220,38,38,0.3)"   },
+  concluido:       { label:"Atendido",        bg:"#EBF0F9", color:C.navy,   border:"rgba(27,58,107,0.3)"   },
+  nao_compareceu:  { label:"Não compareceu",  bg:"#F5F0FF", color:"#7C3AED", border:"rgba(124,58,237,0.3)" },
 };
 
 const SERVICE_LABEL = {
@@ -111,6 +112,8 @@ function CardAgendamento({ a, atualizando, onStatus, destacar }) {
   const [mostrarNota, setMostrarNota]     = useState(false);
   const [historico, setHistorico]         = useState(null);
   const [loadingHist, setLoadingHist]     = useState(false);
+  const [avaliacaoLocal, setAvaliacaoLocal] = useState(a.avaliacao || null);
+  const [salvandoAval, setSalvandoAval]   = useState(false);
 
   async function salvarNota() {
     if (!notaTexto.trim()) return;
@@ -129,6 +132,15 @@ function CardAgendamento({ a, atualizando, onStatus, destacar }) {
     try { setHistorico(await buscarHistorico(a.id)); }
     catch (e) { setHistorico([]); }
     finally { setLoadingHist(false); }
+  }
+
+  async function salvarAvaliacao(nota) {
+    setSalvandoAval(true);
+    try {
+      const r = await registrarAvaliacao(a.id, nota);
+      setAvaliacaoLocal(r.avaliacao);
+    } catch (e) { alert(e.message); }
+    finally { setSalvandoAval(false); }
   }
 
   function fmtTs(ts) {
@@ -196,17 +208,26 @@ function CardAgendamento({ a, atualizando, onStatus, destacar }) {
             style={{ background:"#EBF5EC", color:C.green, border:"2px solid " + C.green,
               borderRadius:8, padding:"6px 14px", fontSize:12, fontWeight:800,
               cursor:"pointer", fontFamily:"'Nunito',sans-serif" }}>
-            Confirmar
+            ✔ Confirmar
           </button>
         )}
         {a.status === "confirmado" && (
-          <button disabled={atualizando === a.id}
-            onClick={() => onStatus(a.id, "concluido")}
-            style={{ background:"#EBF0F9", color:C.navy, border:"2px solid " + C.navy,
-              borderRadius:8, padding:"6px 14px", fontSize:12, fontWeight:800,
-              cursor:"pointer", fontFamily:"'Nunito',sans-serif" }}>
-            Concluir
-          </button>
+          <>
+            <button disabled={atualizando === a.id}
+              onClick={() => onStatus(a.id, "concluido")}
+              style={{ background:"#EBF0F9", color:C.navy, border:"2px solid " + C.navy,
+                borderRadius:8, padding:"6px 14px", fontSize:12, fontWeight:800,
+                cursor:"pointer", fontFamily:"'Nunito',sans-serif" }}>
+              ✅ Atendido
+            </button>
+            <button disabled={atualizando === a.id}
+              onClick={() => onStatus(a.id, "nao_compareceu")}
+              style={{ background:"#F5F0FF", color:"#7C3AED", border:"2px solid rgba(124,58,237,0.4)",
+                borderRadius:8, padding:"6px 14px", fontSize:12, fontWeight:800,
+                cursor:"pointer", fontFamily:"'Nunito',sans-serif" }}>
+              🚫 Não compareceu
+            </button>
+          </>
         )}
         {(a.status === "pendente" || a.status === "confirmado") && (
           <button disabled={atualizando === a.id}
@@ -232,6 +253,35 @@ function CardAgendamento({ a, atualizando, onStatus, destacar }) {
           {loadingHist ? "..." : "🕒 Histórico"}
         </button>
       </div>
+
+      {/* Avaliação de atendimento (só para concluídos) */}
+      {a.status === "concluido" && (
+        <div style={{ marginTop:10, paddingTop:10, borderTop:"1px solid " + C.gray200 }}>
+          <div style={{ fontSize:11, fontWeight:800, color:C.navy, marginBottom:6 }}>
+            ⭐ AVALIAÇÃO DO ATENDIMENTO
+          </div>
+          <div style={{ display:"flex", gap:6, alignItems:"center" }}>
+            {[1,2,3,4,5].map(n => (
+              <button key={n} disabled={salvandoAval}
+                onClick={() => salvarAvaliacao(n)}
+                style={{ background: avaliacaoLocal >= n ? "#FEF08A" : C.gray100,
+                  border:"2px solid " + (avaliacaoLocal >= n ? "#EAB308" : C.gray200),
+                  borderRadius:8, padding:"6px 10px", fontSize:18,
+                  cursor: salvandoAval ? "wait" : "pointer", lineHeight:1 }}>
+                ⭐
+              </button>
+            ))}
+            {avaliacaoLocal && (
+              <span style={{ fontSize:12, color:C.gray600, marginLeft:6 }}>
+                {["","Ruim","Regular","Bom","Muito bom","Excelente"][avaliacaoLocal]}
+              </span>
+            )}
+            {!avaliacaoLocal && (
+              <span style={{ fontSize:12, color:C.gray400 }}>Clique para avaliar</span>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Input de nota */}
       {mostrarNota && (
@@ -278,6 +328,132 @@ function CardAgendamento({ a, atualizando, onStatus, destacar }) {
               ))
           }
         </div>
+      )}
+    </div>
+  );
+}
+
+// ── Relatório de Faltas ───────────────────────────────────────
+function RelatorioFaltas() {
+  const hoje = new Date().toISOString().split("T")[0];
+  const umMesAtras = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+  const [dataInicio, setDataInicio] = useState(umMesAtras);
+  const [dataFim, setDataFim]       = useState(hoje);
+  const [service, setService]       = useState("");
+  const [faltas, setFaltas]         = useState([]);
+  const [carregando, setCarregando] = useState(false);
+  const [erro, setErro]             = useState("");
+
+  const inputStyle = { border:"2px solid " + C.gray200, borderRadius:10, padding:"8px 12px",
+    fontFamily:"'Nunito',sans-serif", fontSize:13, color:C.gray800, outline:"none",
+    background:C.white };
+
+  async function carregar() {
+    setCarregando(true); setErro("");
+    try { setFaltas(await buscarFaltas({ data_inicio: dataInicio||undefined, data_fim: dataFim||undefined, service: service||undefined })); }
+    catch (e) { setErro(e.message); }
+    finally { setCarregando(false); }
+  }
+
+  useEffect(() => { carregar(); }, []);
+
+  const porServico = Object.entries(SERVICE_LABEL).map(([id, label]) => ({
+    id, label, emoji: SERVICE_EMOJI[id],
+    total: faltas.filter(f => f.service === id).length,
+  })).filter(s => s.total > 0);
+
+  return (
+    <div>
+      <div style={{ fontWeight:900, fontSize:17, color:C.navy, marginBottom:16 }}>🚫 Relatório de Não Comparecimentos</div>
+
+      {/* Filtros */}
+      <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:16, alignItems:"flex-end" }}>
+        <div>
+          <div style={{ fontSize:11, fontWeight:700, color:C.gray600, marginBottom:4 }}>De</div>
+          <input type="date" style={inputStyle} value={dataInicio} onChange={e => setDataInicio(e.target.value)} />
+        </div>
+        <div>
+          <div style={{ fontSize:11, fontWeight:700, color:C.gray600, marginBottom:4 }}>Até</div>
+          <input type="date" style={inputStyle} value={dataFim} onChange={e => setDataFim(e.target.value)} />
+        </div>
+        <div>
+          <div style={{ fontSize:11, fontWeight:700, color:C.gray600, marginBottom:4 }}>Serviço</div>
+          <select style={{ ...inputStyle, cursor:"pointer", appearance:"none" }} value={service} onChange={e => setService(e.target.value)}>
+            <option value="">Todos</option>
+            {Object.entries(SERVICE_LABEL).map(([id, label]) => <option key={id} value={id}>{SERVICE_EMOJI[id]} {label}</option>)}
+          </select>
+        </div>
+        <button onClick={carregar} disabled={carregando}
+          style={{ background:C.navy, color:"#fff", border:"none", borderRadius:10,
+            padding:"8px 18px", fontSize:13, fontWeight:800, cursor:"pointer",
+            fontFamily:"'Nunito',sans-serif", alignSelf:"flex-end" }}>
+          {carregando ? "..." : "Buscar"}
+        </button>
+      </div>
+
+      {erro && <div style={{ color:C.red, fontSize:13, marginBottom:12 }}>⚠️ {erro}</div>}
+
+      {/* Resumo por serviço */}
+      {faltas.length > 0 && (
+        <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:16 }}>
+          <div style={{ background:"#F5F0FF", border:"2px solid rgba(124,58,237,0.3)",
+            borderRadius:12, padding:"12px 16px", minWidth:100, textAlign:"center" }}>
+            <div style={{ fontSize:24, fontWeight:900, color:"#7C3AED" }}>{faltas.length}</div>
+            <div style={{ fontSize:11, fontWeight:800, color:"#7C3AED" }}>Total de faltas</div>
+          </div>
+          {porServico.map(s => (
+            <div key={s.id} style={{ background:C.gray100, border:"2px solid " + C.gray200,
+              borderRadius:12, padding:"10px 14px", minWidth:90, textAlign:"center" }}>
+              <div style={{ fontSize:20, marginBottom:2 }}>{s.emoji}</div>
+              <div style={{ fontSize:20, fontWeight:900, color:C.navy }}>{s.total}</div>
+              <div style={{ fontSize:10, fontWeight:700, color:C.gray600 }}>{s.label.split(" ")[0]}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Lista de faltas */}
+      {carregando ? (
+        <div style={{ textAlign:"center", padding:32, color:C.gray400 }}>Carregando...</div>
+      ) : faltas.length === 0 ? (
+        <div style={{ textAlign:"center", padding:32, color:C.gray400, fontSize:14 }}>
+          Nenhuma falta registrada no período.
+        </div>
+      ) : (
+        faltas.map(f => {
+          const resp = f.responsible;
+          return (
+            <div key={f.id} style={{ background:C.white, border:"2px solid rgba(124,58,237,0.25)",
+              borderLeft:"4px solid #7C3AED", borderRadius:14, padding:"14px 16px", marginBottom:8 }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+                <div>
+                  <div style={{ fontWeight:900, fontSize:14, color:C.navy }}>
+                    {SERVICE_EMOJI[f.service]} {SERVICE_LABEL[f.service] || f.service}
+                  </div>
+                  <div style={{ fontSize:12, color:C.gray400, marginTop:2 }}>
+                    {f.date ? f.date + (f.slot ? " às " + f.slot : "") : "Sem data"}
+                  </div>
+                </div>
+                <div style={{ background:"#F5F0FF", color:"#7C3AED",
+                  border:"1.5px solid rgba(124,58,237,0.3)", borderRadius:8,
+                  padding:"2px 10px", fontSize:11, fontWeight:800 }}>
+                  🚫 Não compareceu
+                </div>
+              </div>
+              <div style={{ fontSize:13, color:C.gray600, marginTop:8 }}>
+                <strong style={{ color:C.gray800 }}>Responsável:</strong> {resp?.name} · {resp?.phone}
+              </div>
+              {f.student && (
+                <div style={{ fontSize:13, color:C.gray600, marginTop:2 }}>
+                  <strong style={{ color:C.gray800 }}>Aluno:</strong> {f.student.name} · {f.student.grade}
+                </div>
+              )}
+              <div style={{ fontSize:11, color:C.gray400, marginTop:4 }}>
+                Protocolo: <strong style={{ color:C.navy }}>{f.protocol}</strong>
+              </div>
+            </div>
+          );
+        })
       )}
     </div>
   );
@@ -333,7 +509,7 @@ export default function PainelSecretaria({ onVoltar }) {
   }
 
   const contadores = Object.fromEntries(
-    ["pendente","confirmado","cancelado","concluido"].map(s => [
+    ["pendente","confirmado","cancelado","concluido","nao_compareceu"].map(s => [
       s, agendamentos.filter(a => a.status === s).length
     ])
   );
@@ -369,8 +545,9 @@ export default function PainelSecretaria({ onVoltar }) {
 
   const tabs = [
     { id:"agendamentos", label:"📋 Agendamentos" },
-    { id:"dashboard",   label:"📊 Dashboard" },
-    { id:"bloqueios",   label:"🚫 Bloqueios" },
+    { id:"faltas",       label:"🚫 Faltas" },
+    { id:"dashboard",    label:"📊 Dashboard" },
+    { id:"bloqueios",    label:"🔒 Bloqueios" },
     ...(admin ? [{ id:"usuarios", label:"👥 Usuários" }] : []),
   ];
 
@@ -489,6 +666,7 @@ export default function PainelSecretaria({ onVoltar }) {
         {aba === "dashboard" && <Dashboard />}
         {aba === "bloqueios" && <GerenciarBloqueios />}
         {aba === "usuarios"  && <GerenciarUsuarios />}
+        {aba === "faltas"    && <RelatorioFaltas />}
 
         {aba === "agendamentos" && (
           <div>
