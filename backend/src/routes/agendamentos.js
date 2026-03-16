@@ -151,7 +151,17 @@ router.post("/verificar", async (req, res) => {
     if (ag.status === "concluido")
       return res.status(409).json({ error: "Este agendamento já foi concluído." });
 
-    return res.json({ cancelToken: ag.cancel_token });
+    // Agendamentos antigos podem não ter cancel_token — gera e salva agora
+    let cancelToken = ag.cancel_token;
+    if (!cancelToken) {
+      cancelToken = crypto.randomBytes(20).toString("hex");
+      await pool.query(
+        "UPDATE agendamentos SET cancel_token=$1 WHERE id=$2",
+        [cancelToken, ag.id]
+      );
+    }
+
+    return res.json({ cancelToken });
   } catch (err) { console.error(err); return res.status(500).json({ error: "Erro interno." }); }
 });
 
