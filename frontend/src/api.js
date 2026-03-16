@@ -98,6 +98,20 @@ export async function consultarProtocolo(protocol) {
   return res.json();
 }
 
+// ── Verificar protocolo + telefone (obtém token para ações) ──
+export async function verificarAgendamento(protocol, phone) {
+  const res = await fetch(`${BASE}/agendamentos/verificar`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ protocol, phone }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Erro ao verificar.");
+  }
+  return res.json(); // { cancelToken }
+}
+
 // ── Cancelar via token ────────────────────────────────────────
 export async function buscarInfoCancelamento(token) {
   const res = await fetch(`${BASE}/agendamentos/cancelar/${token}`);

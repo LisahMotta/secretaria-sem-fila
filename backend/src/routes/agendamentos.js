@@ -114,6 +114,47 @@ router.get("/slots", async (req, res) => {
   } catch (err) { console.error(err); return res.status(500).json({ error: "Erro interno." }); }
 });
 
+// ── Verificação protocolo + telefone (retorna token para ações) ──
+// Aceita os últimos 4 dígitos OU o telefone completo
+router.post("/verificar", async (req, res) => {
+  const { protocol, phone } = req.body;
+  if (!protocol || !phone)
+    return res.status(400).json({ error: "Protocolo e telefone são obrigatórios." });
+
+  try {
+    const { rows } = await pool.query(
+      "SELECT * FROM agendamentos WHERE protocol=$1",
+      [protocol.toUpperCase().trim()]
+    );
+    if (!rows.length) return res.status(404).json({ error: "Protocolo não encontrado." });
+
+    const ag = rows[0];
+    const responsible = typeof ag.responsible === "string"
+      ? JSON.parse(ag.responsible) : ag.responsible;
+
+    const telefoneCadastrado = (responsible?.phone || "").replace(/\D/g, "");
+    const telefoneInformado  = phone.replace(/\D/g, "");
+
+    // Aceita: últimos 4 dígitos OU número completo (com ou sem DDI 55)
+    const match =
+      telefoneCadastrado.endsWith(telefoneInformado) ||
+      telefoneInformado.endsWith(telefoneCadastrado.slice(-4)) ||
+      telefoneCadastrado === telefoneInformado ||
+      ("55" + telefoneCadastrado) === telefoneInformado ||
+      telefoneCadastrado === ("55" + telefoneInformado);
+
+    if (!match)
+      return res.status(401).json({ error: "Telefone não confere com o cadastro." });
+
+    if (ag.status === "cancelado")
+      return res.status(409).json({ error: "Este agendamento já foi cancelado." });
+    if (ag.status === "concluido")
+      return res.status(409).json({ error: "Este agendamento já foi concluído." });
+
+    return res.json({ cancelToken: ag.cancel_token });
+  } catch (err) { console.error(err); return res.status(500).json({ error: "Erro interno." }); }
+});
+
 // ── Consulta pública por protocolo ───────────────────────────
 router.get("/consultar/:protocol", async (req, res) => {
   try {
