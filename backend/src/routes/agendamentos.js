@@ -370,10 +370,30 @@ router.get("/", verificarToken, async (req, res) => {
 });
 
 // ── Atualizar status ──────────────────────────────────────────
+// ── Relatório de faltas ────────────────────────────────────────
+router.get("/relatorio/faltas", verificarToken, async (req, res) => {
+  const { data_inicio, data_fim, service } = req.query;
+  try {
+    const params = [];
+    let query = `SELECT id, protocol, service, date, slot, responsible, student, criado_em, atualizado_em
+                 FROM agendamentos WHERE status='nao_compareceu'`;
+    if (data_inicio) { params.push(data_inicio); query += ` AND date>=$${params.length}`; }
+    if (data_fim)    { params.push(data_fim);    query += ` AND date<=$${params.length}`; }
+    if (service)     { params.push(service);     query += ` AND service=$${params.length}`; }
+    query += " ORDER BY date DESC, slot ASC";
+    const { rows } = await pool.query(query, params);
+    return res.json(rows.map(ag => ({
+      ...ag,
+      responsible: typeof ag.responsible === "string" ? JSON.parse(ag.responsible) : ag.responsible,
+      student: ag.student ? (typeof ag.student === "string" ? JSON.parse(ag.student) : ag.student) : null,
+    })));
+  } catch (err) { console.error(err); return res.status(500).json({ error: "Erro interno." }); }
+});
+
 router.patch("/:id/status", verificarToken, async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
-  if (!["pendente","confirmado","cancelado","concluido"].includes(status))
+  if (!["pendente","confirmado","cancelado","concluido","nao_compareceu"].includes(status))
     return res.status(400).json({ error: "Status inválido." });
   const client = await pool.connect();
   try {
@@ -428,3 +448,27 @@ router.get("/:id/historico", verificarToken, async (req, res) => {
     return res.json(rows);
   } catch (err) { console.error(err); return res.status(500).json({ error: "Erro interno." }); }
 });
+
+// ── Avaliação de atendimento ───────────────────────────────────
+router.patch("/:id/avaliacao", verificarToken, async (req, res) => {
+  const { avaliacao } = req.body;
+  if (!avaliacao || avaliacao < 1 || avaliacao > 5)
+    return res.status(400).json({ error: "Avaliação deve ser entre 1 e 5." });
+  const client = await pool.connect();
+  try {
+    const { rows } = await client.query(
+      "UPDATE agendamentos SET avaliacao=$1, atualizado_em=NOW() WHERE id=$2 RETURNING id, protocol, avaliacao",
+      [avaliacao, req.params.id]
+    );
+    if (!rows.length) return res.status(404).json({ error: "Não encontrado." });
+    await gravarAudit(client, {
+      agendamentoId: rows[0].id, protocol: rows[0].protocol,
+      usuarioNome: req.user.nome, acao: "avaliacao",
+      detalhe: `Atendimento avaliado com ${avaliacao} estrela${avaliacao > 1 ? "s" : ""}`,
+    });
+    return res.json({ ok: true, avaliacao: rows[0].avaliacao });
+  } catch (err) { console.error(err); return res.status(500).json({ error: "Erro interno." }); }
+  finally { client.release(); }
+});
+
+// ── Relatório de faltas ────────────────────────────────────────
