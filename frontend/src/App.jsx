@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import PainelSecretaria from "./components/PainelSecretaria.jsx";
 import TelaLogin from "./components/TelaLogin.jsx";
+import ConsultaAgendamento from "./components/ConsultaAgendamento.jsx";
 import { criarAgendamento, buscarSlotsOcupados } from "./api.js";
 import { estaLogado } from "./auth.js";
 
@@ -431,6 +432,7 @@ export default function App() {
   const [saving, setSaving]               = useState(false);
   const [saveError, setSaveError]         = useState("");
   const [slotsOcupados, setSlotsOcupados] = useState([]);
+  const [diaBloqueado, setDiaBloqueado]   = useState(false);
   const [loadingSlots, setLoadingSlots]   = useState(false);
 
   // Detecta URL /painel ao carregar — abre login automaticamente
@@ -438,14 +440,36 @@ export default function App() {
   const [painelAberto, setPainelAberto]   = useState(rotaInicial && estaLogado());
   const [loginAberto, setLoginAberto]     = useState(rotaInicial && !estaLogado());
 
+  // Detecta parâmetros de URL para ações públicas
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlCancelar   = urlParams.get("cancelar");
+  const urlReagendar  = urlParams.get("reagendar");
+  const urlProtocolo  = urlParams.get("protocolo");
+  const modoPublico = urlCancelar ? "cancelar"
+    : urlReagendar ? "reagendar"
+    : urlProtocolo ? "consulta"
+    : null;
+  const tokenPublico = urlCancelar || urlReagendar || urlProtocolo || null;
+  const [consultaAberta, setConsultaAberta] = useState(!!modoPublico);
+  const [modoConsulta, setModoConsulta]     = useState(modoPublico);
+  const [tokenConsulta, setTokenConsulta]   = useState(tokenPublico);
+
+  function abrirConsulta(modo, token) {
+    setModoConsulta(modo); setTokenConsulta(token); setConsultaAberta(true);
+  }
+  function fecharConsulta() {
+    setConsultaAberta(false); setModoConsulta(null); setTokenConsulta(null);
+    window.history.replaceState(null, "", "/");
+  }
+
   // Mantém a URL /painel enquanto o painel estiver aberto
   useEffect(() => {
     if (painelAberto || loginAberto) {
       window.history.replaceState(null, "", "/painel");
-    } else {
+    } else if (!consultaAberta) {
       window.history.replaceState(null, "", "/");
     }
-  }, [painelAberto, loginAberto]);
+  }, [painelAberto, loginAberto, consultaAberta]);
 
   const needsStudent   = !!(service && !service.external);
   const needsDocs      = service?.id === "documentos";
@@ -591,7 +615,16 @@ export default function App() {
         <PainelSecretaria onVoltar={() => setPainelAberto(false)} />
       )}
 
-      {!painelAberto && !loginAberto && (
+      {/* CONSULTA / CANCELAMENTO / REAGENDAMENTO PÚBLICO */}
+      {consultaAberta && !painelAberto && !loginAberto && (
+        <ConsultaAgendamento
+          modo={modoConsulta}
+          token={tokenConsulta}
+          onVoltar={fecharConsulta}
+        />
+      )}
+
+      {!painelAberto && !loginAberto && !consultaAberta && (
       <>
 
       {/* HEADER */}
@@ -627,9 +660,18 @@ export default function App() {
               <p style={{ fontSize:14, color:"rgba(255,255,255,0.65)", lineHeight:1.6, marginBottom:24, maxWidth:340 }}>
                 Escolha o serviço e a secretaria já prepara tudo antes da sua chegada.
               </p>
-              <button className="btn-primary" onClick={() => setStep(1)} style={{ fontSize:16, padding:"14px 36px" }}>
-                Agendar agora →
-              </button>
+              <div style={{ display:"flex", gap:10, alignItems:"center", flexWrap:"wrap" }}>
+                <button className="btn-primary" onClick={() => setStep(1)} style={{ fontSize:16, padding:"14px 36px" }}>
+                  Agendar agora →
+                </button>
+                <button onClick={() => abrirConsulta("consulta", null)}
+                  style={{ background:"rgba(255,255,255,0.12)", color:"white",
+                    border:"2px solid rgba(255,255,255,0.3)", borderRadius:12,
+                    padding:"13px 20px", fontFamily:"'Nunito',sans-serif",
+                    fontSize:14, fontWeight:800, cursor:"pointer" }}>
+                  🔍 Consultar protocolo
+                </button>
+              </div>
             </div>
 
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10, marginBottom:18 }}>
@@ -652,7 +694,7 @@ export default function App() {
                 Dados de alunos são coletados <strong>apenas com consentimento explícito do responsável legal</strong>, exclusivamente para preparação do documento solicitado.
               </p>
             </div>
-            <div style={{ background:"#FEF3EC", border:"2px solid rgba(232,120,32,0.3)", borderRadius:14, padding:"14px 16px" }}>
+            <div style={{ background:"#FEF3EC", border:"2px solid rgba(232,120,32,0.3)", borderRadius:14, padding:"14px 16px", marginBottom:12 }}>
               <div style={{ fontSize:13, fontWeight:800, color:C.orange, marginBottom:6 }}>⚠️ Transferências não são online</div>
               <p style={{ fontSize:13, color:C.gray600, lineHeight:1.6 }}>
                 Por determinação legal, a <strong>transferência de alunos exige presença obrigatória</strong> na secretaria com documentação completa.
@@ -735,11 +777,13 @@ export default function App() {
               onClick={async () => {
                 setLoadingSlots(true);
                 setSlotsOcupados([]);
+                setDiaBloqueado(false);
                 setSlot(null);
                 try {
                   const dataStr = day.toISOString().split("T")[0];
-                  const ocupados = await buscarSlotsOcupados(dataStr);
-                  setSlotsOcupados(ocupados);
+                  const result = await buscarSlotsOcupados(dataStr);
+                  setSlotsOcupados(result.ocupados || []);
+                  setDiaBloqueado(result.diaBloqueado || false);
                 } catch (_) {
                   setSlotsOcupados([]);
                 } finally {
@@ -804,7 +848,13 @@ export default function App() {
               </div>
             ))}
 
-            {SLOTS.every(s => slotsOcupados.includes(s)) && (
+            {diaBloqueado && (
+              <div style={{ background:"#FEF0EE", border:`2px solid rgba(220,38,38,0.3)`,
+                borderRadius:12, padding:"12px 16px", marginBottom:16, fontSize:13, color:C.red, fontWeight:700 }}>
+                🚫 Este dia está bloqueado pela secretaria. Volte e escolha outra data.
+              </div>
+            )}
+            {!diaBloqueado && SLOTS.every(s => slotsOcupados.includes(s)) && (
               <div style={{ background:"#FEF3EC", border:`2px solid rgba(232,120,32,0.3)`,
                 borderRadius:12, padding:"12px 16px", marginBottom:16, fontSize:13, color:C.orange, fontWeight:700 }}>
                 ⚠️ Todos os horários deste dia estão ocupados. Volte e escolha outra data.
