@@ -282,6 +282,7 @@ function ModoReagendar({ token, onVoltar }) {
   const [dataSel, setDataSel] = useState("");
   const [slotSel, setSlotSel] = useState("");
   const [slotsOcupados, setSlotsOcupados] = useState([]);
+  const [diaBloqueado, setDiaBloqueado] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [feito, setFeito] = useState(null);
 
@@ -294,7 +295,10 @@ function ModoReagendar({ token, onVoltar }) {
 
   useEffect(() => {
     if (!dataSel) return;
-    buscarSlotsOcupados(dataSel).then(r => setSlotsOcupados(r.ocupados || []));
+    buscarSlotsOcupados(dataSel).then(r => {
+      setSlotsOcupados(r.ocupados || []);
+      setDiaBloqueado(r.diaBloqueado || false);
+    });
   }, [dataSel]);
 
   async function reagendar() {
@@ -364,9 +368,15 @@ function ModoReagendar({ token, onVoltar }) {
               <div style={{ fontWeight:800, fontSize:14, color:C.gray800, marginBottom:10 }}>
                 Escolha o horário:
               </div>
+              {diaBloqueado && (
+                <div style={{ background:"#FEF0EE", border:`2px solid rgba(220,38,38,0.3)`,
+                  borderRadius:12, padding:"12px 16px", marginBottom:12, fontSize:13, color:"#DC2626", fontWeight:700 }}>
+                  🚫 Este dia está bloqueado pela secretaria. Escolha outra data.
+                </div>
+              )}
               <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:8, marginBottom:20 }}>
                 {SLOTS.map(s => {
-                  const ocupado = slotsOcupados.includes(s);
+                  const ocupado = diaBloqueado || slotsOcupados.includes(s);
                   const sel = slotSel === s;
                   return (
                     <button key={s} disabled={ocupado} onClick={() => setSlotSel(s)}
@@ -384,9 +394,9 @@ function ModoReagendar({ token, onVoltar }) {
             </>
           )}
           <div style={{ display:"flex", gap:8 }}>
-            <button onClick={reagendar} disabled={salvando || !dataSel || !slotSel}
-              style={{ flex:1, background: (!dataSel || !slotSel) ? C.gray200 : C.green,
-                color: (!dataSel || !slotSel) ? C.gray400 : "#fff",
+            <button onClick={reagendar} disabled={salvando || !dataSel || !slotSel || diaBloqueado}
+              style={{ flex:1, background: (!dataSel || !slotSel || diaBloqueado) ? C.gray200 : C.green,
+                color: (!dataSel || !slotSel || diaBloqueado) ? C.gray400 : "#fff",
                 border:"none", borderRadius:10, padding:"12px",
                 fontFamily:"'Nunito',sans-serif", fontSize:14,
                 fontWeight:800, cursor: (!dataSel || !slotSel) ? "not-allowed" : "pointer" }}>
