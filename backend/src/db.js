@@ -50,7 +50,31 @@ export async function initDB() {
         usuario    TEXT UNIQUE NOT NULL,
         senha_hash TEXT NOT NULL,
         nome       TEXT NOT NULL,
+        perfil     TEXT NOT NULL DEFAULT 'funcionario',
         criado_em  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS perfil TEXT NOT NULL DEFAULT 'funcionario';
+
+      CREATE TABLE IF NOT EXISTS bloqueios (
+        id         SERIAL PRIMARY KEY,
+        date       DATE NOT NULL,
+        slot       TEXT,
+        motivo     TEXT NOT NULL,
+        criado_por TEXT NOT NULL,
+        criado_em  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS notas JSONB DEFAULT '[]';
+
+      CREATE TABLE IF NOT EXISTS audit_log (
+        id              SERIAL PRIMARY KEY,
+        agendamento_id  INT REFERENCES agendamentos(id) ON DELETE CASCADE,
+        protocol        TEXT,
+        usuario_nome    TEXT NOT NULL,
+        acao            TEXT NOT NULL,
+        detalhe         TEXT,
+        criado_em       TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
     `);
 
@@ -61,8 +85,8 @@ export async function initDB() {
       const senhaInicial = process.env.ADMIN_PASSWORD || "secretaria123";
       const hash = await bcrypt.default.hash(senhaInicial, 10);
       await client.query(
-        "INSERT INTO usuarios (usuario, senha_hash, nome) VALUES ($1, $2, $3)",
-        ["secretaria", hash, "Secretaria"]
+        "INSERT INTO usuarios (usuario, senha_hash, nome, perfil) VALUES ($1, $2, $3, $4)",
+        ["secretaria", hash, "Secretaria", "admin"]
       );
       console.log("Usuário padrão criado: secretaria / " + senhaInicial);
     }

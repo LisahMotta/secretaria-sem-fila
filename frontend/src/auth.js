@@ -12,10 +12,19 @@ export function setToken(token) {
 export function removeToken() {
   sessionStorage.removeItem("ssf_token");
   sessionStorage.removeItem("ssf_nome");
+  sessionStorage.removeItem("ssf_perfil");
 }
 
 export function getNome() {
   return sessionStorage.getItem("ssf_nome") || "Secretaria";
+}
+
+export function getPerfil() {
+  return sessionStorage.getItem("ssf_perfil") || "funcionario";
+}
+
+export function isAdmin() {
+  return getPerfil() === "admin";
 }
 
 export function estaLogado() {
@@ -36,6 +45,7 @@ export async function login(usuario, senha) {
 
   setToken(data.token);
   sessionStorage.setItem("ssf_nome", data.nome);
+  sessionStorage.setItem("ssf_perfil", data.perfil || "funcionario");
   return data;
 }
 

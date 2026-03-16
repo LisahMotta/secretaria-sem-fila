@@ -432,6 +432,7 @@ export default function App() {
   const [saving, setSaving]               = useState(false);
   const [saveError, setSaveError]         = useState("");
   const [slotsOcupados, setSlotsOcupados] = useState([]);
+  const [diaBloqueado, setDiaBloqueado]   = useState(false);
   const [loadingSlots, setLoadingSlots]   = useState(false);
 
   // Detecta URL /painel ao carregar — abre login automaticamente
@@ -774,11 +775,13 @@ export default function App() {
               onClick={async () => {
                 setLoadingSlots(true);
                 setSlotsOcupados([]);
+                setDiaBloqueado(false);
                 setSlot(null);
                 try {
                   const dataStr = day.toISOString().split("T")[0];
-                  const ocupados = await buscarSlotsOcupados(dataStr);
-                  setSlotsOcupados(ocupados);
+                  const result = await buscarSlotsOcupados(dataStr);
+                  setSlotsOcupados(result.ocupados || []);
+                  setDiaBloqueado(result.diaBloqueado || false);
                 } catch (_) {
                   setSlotsOcupados([]);
                 } finally {
@@ -843,7 +846,13 @@ export default function App() {
               </div>
             ))}
 
-            {SLOTS.every(s => slotsOcupados.includes(s)) && (
+            {diaBloqueado && (
+              <div style={{ background:"#FEF0EE", border:`2px solid rgba(220,38,38,0.3)`,
+                borderRadius:12, padding:"12px 16px", marginBottom:16, fontSize:13, color:C.red, fontWeight:700 }}>
+                🚫 Este dia está bloqueado pela secretaria. Volte e escolha outra data.
+              </div>
+            )}
+            {!diaBloqueado && SLOTS.every(s => slotsOcupados.includes(s)) && (
               <div style={{ background:"#FEF3EC", border:`2px solid rgba(232,120,32,0.3)`,
                 borderRadius:12, padding:"12px 16px", marginBottom:16, fontSize:13, color:C.orange, fontWeight:700 }}>
                 ⚠️ Todos os horários deste dia estão ocupados. Volte e escolha outra data.
