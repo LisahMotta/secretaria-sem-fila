@@ -660,9 +660,18 @@ export default function App() {
               <p style={{ fontSize:14, color:"rgba(255,255,255,0.65)", lineHeight:1.6, marginBottom:24, maxWidth:340 }}>
                 Escolha o serviço e a secretaria já prepara tudo antes da sua chegada.
               </p>
-              <button className="btn-primary" onClick={() => setStep(1)} style={{ fontSize:16, padding:"14px 36px" }}>
-                Agendar agora →
-              </button>
+              <div style={{ display:"flex", gap:10, alignItems:"center", flexWrap:"wrap" }}>
+                <button className="btn-primary" onClick={() => setStep(1)} style={{ fontSize:16, padding:"14px 36px" }}>
+                  Agendar agora →
+                </button>
+                <button onClick={() => abrirConsulta("consulta", null)}
+                  style={{ background:"rgba(255,255,255,0.12)", color:"white",
+                    border:"2px solid rgba(255,255,255,0.3)", borderRadius:12,
+                    padding:"13px 20px", fontFamily:"'Nunito',sans-serif",
+                    fontSize:14, fontWeight:800, cursor:"pointer" }}>
+                  🔍 Consultar protocolo
+                </button>
+              </div>
             </div>
 
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10, marginBottom:18 }}>
@@ -691,13 +700,6 @@ export default function App() {
                 Por determinação legal, a <strong>transferência de alunos exige presença obrigatória</strong> na secretaria com documentação completa.
               </p>
             </div>
-            <button onClick={() => abrirConsulta("consulta", null)}
-              style={{ width:"100%", background:C.white, border:"2px solid " + C.gray200,
-                borderRadius:14, padding:"13px 16px", fontFamily:"'Nunito',sans-serif",
-                fontSize:14, fontWeight:800, color:C.navy, cursor:"pointer",
-                display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
-              🔍 Consultar agendamento existente
-            </button>
           </div>
         )}
 
