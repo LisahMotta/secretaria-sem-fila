@@ -30,6 +30,7 @@ export default function PainelSecretaria({ onVoltar }) {
   const [agendamentos, setAgendamentos] = useState([]);
   const [filtroData, setFiltroData]     = useState(new Date().toISOString().split("T")[0]);
   const [filtroStatus, setFiltroStatus] = useState("");
+  const [filtroServico, setFiltroServico] = useState("");
   const [carregando, setCarregando]     = useState(true);
   const [erro, setErro]                 = useState("");
   const [pushAtivo, setPushAtivo]       = useState(false);
@@ -48,11 +49,15 @@ export default function PainelSecretaria({ onVoltar }) {
   const carregar = useCallback(async () => {
     setCarregando(true); setErro("");
     try {
-      const dados = await listarAgendamentos({ data: filtroData, status: filtroStatus || undefined });
+      const dados = await listarAgendamentos({
+        data: filtroData,
+        status: filtroStatus || undefined,
+        service: filtroServico || undefined,
+      });
       setAgendamentos(dados);
     } catch (e) { setErro(e.message); }
     finally { setCarregando(false); }
-  }, [filtroData, filtroStatus]);
+  }, [filtroData, filtroStatus, filtroServico]);
 
   useEffect(() => { carregar(); }, [carregar]);
 
@@ -227,17 +232,26 @@ export default function PainelSecretaria({ onVoltar }) {
                 onChange={e => setFiltroData(e.target.value)}
                 style={{ border:"2px solid " + C.gray200, borderRadius:10, padding:"8px 12px",
                   fontSize:14, fontFamily:"'Nunito',sans-serif", color:C.gray800, outline:"none" }} />
+              <select value={filtroServico} onChange={e => setFiltroServico(e.target.value)}
+                style={{ border:"2px solid " + C.gray200, borderRadius:10, padding:"8px 12px",
+                  fontSize:13, fontFamily:"'Nunito',sans-serif", color:C.gray800, outline:"none",
+                  background:C.white, cursor:"pointer" }}>
+                <option value="">Todos os serviços</option>
+                {Object.entries(SERVICE_LABEL).map(([id, label]) => (
+                  <option key={id} value={id}>{SERVICE_EMOJI[id]} {label}</option>
+                ))}
+              </select>
               <button onClick={carregar}
                 style={{ background:C.navy, color:"#fff", border:"none", borderRadius:10,
                   padding:"8px 18px", fontSize:13, fontWeight:800, cursor:"pointer",
                   fontFamily:"'Nunito',sans-serif" }}>
                 Atualizar
               </button>
-              <button onClick={() => setFiltroData("")}
+              <button onClick={() => { setFiltroData(""); setFiltroServico(""); }}
                 style={{ background:"transparent", color:C.gray600, border:"2px solid " + C.gray200,
                   borderRadius:10, padding:"8px 14px", fontSize:13, fontWeight:700, cursor:"pointer",
                   fontFamily:"'Nunito',sans-serif" }}>
-                Todos
+                Limpar filtros
               </button>
             </div>
 

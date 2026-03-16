@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import PainelSecretaria from "./components/PainelSecretaria.jsx";
 import TelaLogin from "./components/TelaLogin.jsx";
+import ConsultaAgendamento from "./components/ConsultaAgendamento.jsx";
 import { criarAgendamento, buscarSlotsOcupados } from "./api.js";
 import { estaLogado } from "./auth.js";
 
@@ -438,14 +439,36 @@ export default function App() {
   const [painelAberto, setPainelAberto]   = useState(rotaInicial && estaLogado());
   const [loginAberto, setLoginAberto]     = useState(rotaInicial && !estaLogado());
 
+  // Detecta parâmetros de URL para ações públicas
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlCancelar   = urlParams.get("cancelar");
+  const urlReagendar  = urlParams.get("reagendar");
+  const urlProtocolo  = urlParams.get("protocolo");
+  const modoPublico = urlCancelar ? "cancelar"
+    : urlReagendar ? "reagendar"
+    : urlProtocolo ? "consulta"
+    : null;
+  const tokenPublico = urlCancelar || urlReagendar || urlProtocolo || null;
+  const [consultaAberta, setConsultaAberta] = useState(!!modoPublico);
+  const [modoConsulta, setModoConsulta]     = useState(modoPublico);
+  const [tokenConsulta, setTokenConsulta]   = useState(tokenPublico);
+
+  function abrirConsulta(modo, token) {
+    setModoConsulta(modo); setTokenConsulta(token); setConsultaAberta(true);
+  }
+  function fecharConsulta() {
+    setConsultaAberta(false); setModoConsulta(null); setTokenConsulta(null);
+    window.history.replaceState(null, "", "/");
+  }
+
   // Mantém a URL /painel enquanto o painel estiver aberto
   useEffect(() => {
     if (painelAberto || loginAberto) {
       window.history.replaceState(null, "", "/painel");
-    } else {
+    } else if (!consultaAberta) {
       window.history.replaceState(null, "", "/");
     }
-  }, [painelAberto, loginAberto]);
+  }, [painelAberto, loginAberto, consultaAberta]);
 
   const needsStudent   = !!(service && !service.external);
   const needsDocs      = service?.id === "documentos";
@@ -591,7 +614,16 @@ export default function App() {
         <PainelSecretaria onVoltar={() => setPainelAberto(false)} />
       )}
 
-      {!painelAberto && !loginAberto && (
+      {/* CONSULTA / CANCELAMENTO / REAGENDAMENTO PÚBLICO */}
+      {consultaAberta && !painelAberto && !loginAberto && (
+        <ConsultaAgendamento
+          modo={modoConsulta}
+          token={tokenConsulta}
+          onVoltar={fecharConsulta}
+        />
+      )}
+
+      {!painelAberto && !loginAberto && !consultaAberta && (
       <>
 
       {/* HEADER */}
@@ -652,12 +684,19 @@ export default function App() {
                 Dados de alunos são coletados <strong>apenas com consentimento explícito do responsável legal</strong>, exclusivamente para preparação do documento solicitado.
               </p>
             </div>
-            <div style={{ background:"#FEF3EC", border:"2px solid rgba(232,120,32,0.3)", borderRadius:14, padding:"14px 16px" }}>
+            <div style={{ background:"#FEF3EC", border:"2px solid rgba(232,120,32,0.3)", borderRadius:14, padding:"14px 16px", marginBottom:12 }}>
               <div style={{ fontSize:13, fontWeight:800, color:C.orange, marginBottom:6 }}>⚠️ Transferências não são online</div>
               <p style={{ fontSize:13, color:C.gray600, lineHeight:1.6 }}>
                 Por determinação legal, a <strong>transferência de alunos exige presença obrigatória</strong> na secretaria com documentação completa.
               </p>
             </div>
+            <button onClick={() => abrirConsulta("consulta", null)}
+              style={{ width:"100%", background:C.white, border:"2px solid " + C.gray200,
+                borderRadius:14, padding:"13px 16px", fontFamily:"'Nunito',sans-serif",
+                fontSize:14, fontWeight:800, color:C.navy, cursor:"pointer",
+                display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
+              🔍 Consultar agendamento existente
+            </button>
           </div>
         )}
 

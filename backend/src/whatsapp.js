@@ -86,13 +86,22 @@ export async function whatsappNovoAgendamento({ protocol, service, date, slot,
 
 // ── 2. Responsável recebe confirmação com protocolo ───────────
 export async function whatsappConfirmacaoResponsavel({ protocol, service,
-  date, slot, responsible }) {
+  date, slot, responsible, cancelToken }) {
   if (!responsible?.phone) return;
 
   const serviceLabel = SERVICE_LABELS[service] || service;
   const dataHora = date
     ? `📅 *${date}*${slot ? ` às *${slot}*` : ""}`
     : "📅 A secretaria entrará em contato para confirmar data e horário.";
+
+  const frontendUrl = process.env.FRONTEND_URL || "";
+  const linksAcao = cancelToken ? [
+    "",
+    "🔗 *Precisa alterar?*",
+    `• Cancelar: ${frontendUrl}?cancelar=${cancelToken}`,
+    `• Reagendar: ${frontendUrl}?reagendar=${cancelToken}`,
+    `• Consultar: ${frontendUrl}?protocolo=${protocol}`,
+  ] : [];
 
   const msg = [
     "✅ *Agendamento confirmado!*",
@@ -109,6 +118,63 @@ export async function whatsappConfirmacaoResponsavel({ protocol, service,
     date
       ? "⏰ Chegue com 5 minutos de antecedência e apresente o protocolo."
       : "📞 A secretaria entrará em contato pelo seu telefone.",
+    ...linksAcao,
+    "",
+    "_Secretaria Sem Fila — SEDUC-SP_",
+  ].filter(Boolean).join("\n");
+
+  await enviarMensagem(responsible.phone, msg);
+}
+
+// ── 4. Lembrete 24h antes ─────────────────────────────────────
+export async function whatsappLembrete24h({ protocol, service, date, slot,
+  responsible, cancelToken }) {
+  if (!responsible?.phone) return;
+
+  const serviceLabel = SERVICE_LABELS[service] || service;
+  const frontendUrl = process.env.FRONTEND_URL || "";
+  const linksAcao = cancelToken ? [
+    "",
+    `• Cancelar: ${frontendUrl}?cancelar=${cancelToken}`,
+    `• Reagendar: ${frontendUrl}?reagendar=${cancelToken}`,
+  ] : [];
+
+  const msg = [
+    "⏰ *Lembrete — Agendamento amanhã!*",
+    "",
+    `Olá, *${responsible.name}*!`,
+    "Você tem um agendamento na secretaria escolar *amanhã*:",
+    "",
+    `📋 *Serviço:* ${serviceLabel}`,
+    `📅 *${date}* às *${slot || "horário a definir"}*`,
+    "",
+    `🔖 *Protocolo:* ${protocol}`,
+    "",
+    "⏰ Chegue com 5 minutos de antecedência.",
+    ...linksAcao,
+    "",
+    "_Secretaria Sem Fila — SEDUC-SP_",
+  ].filter(Boolean).join("\n");
+
+  await enviarMensagem(responsible.phone, msg);
+}
+
+// ── 5. Lembrete 1h antes ──────────────────────────────────────
+export async function whatsappLembrete1h({ protocol, service, date, slot,
+  responsible }) {
+  if (!responsible?.phone) return;
+
+  const serviceLabel = SERVICE_LABELS[service] || service;
+
+  const msg = [
+    "🔔 *Seu atendimento começa em 1 hora!*",
+    "",
+    `Olá, *${responsible.name}*!`,
+    `📋 *Serviço:* ${serviceLabel}`,
+    `📅 *${date}* às *${slot}*`,
+    `🔖 *Protocolo:* ${protocol}`,
+    "",
+    "Apresente o protocolo na chegada.",
     "",
     "_Secretaria Sem Fila — SEDUC-SP_",
   ].filter(Boolean).join("\n");

@@ -5,6 +5,7 @@ import { router as agendamentosRouter } from "./routes/agendamentos.js";
 import { router as pushRouter } from "./routes/push.js";
 import { router as authRouter } from "./routes/auth.js";
 import { initDB } from "./db.js";
+import { iniciarLembretes } from "./reminders.js";
 
 dotenv.config();
 
@@ -21,6 +22,7 @@ app.use("/api/agendamentos", agendamentosRouter);
 app.use("/api/push", pushRouter);
 
 initDB().then(() => {
+  iniciarLembretes();
   app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
 }).catch(err => {
   console.error("Erro ao conectar no banco:", err);

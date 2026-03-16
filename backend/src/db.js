@@ -26,9 +26,16 @@ export async function initDB() {
         outros      JSONB,
         historico   JSONB,
         passe       JSONB,
+        cancel_token  TEXT UNIQUE,
+        lembrete_24h  BOOLEAN NOT NULL DEFAULT FALSE,
+        lembrete_1h   BOOLEAN NOT NULL DEFAULT FALSE,
         criado_em   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         atualizado_em TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
+
+      ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS cancel_token TEXT UNIQUE;
+      ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS lembrete_24h BOOLEAN NOT NULL DEFAULT FALSE;
+      ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS lembrete_1h  BOOLEAN NOT NULL DEFAULT FALSE;
 
       CREATE TABLE IF NOT EXISTS push_subscriptions (
         id        SERIAL PRIMARY KEY,
