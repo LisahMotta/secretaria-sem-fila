@@ -830,16 +830,16 @@ export default function App() {
                 <div style={{ fontSize:11, fontWeight:800, color:C.gray400, letterSpacing:"1.5px", textTransform:"uppercase", marginBottom:10 }}>{period}</div>
                 <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:8 }}>
                   {slots.map(s => {
-                    const bloqueado = slotsOcupados.includes(s);
+                    const bloqueado = diaBloqueado || slotsOcupados.includes(s);
                     const selecionado = slot === s;
                     return (
                       <button key={s}
                         className={`slot-btn ${bloqueado ? "blocked" : ""} ${selecionado ? "slot-sel" : ""}`}
                         onClick={() => !bloqueado && setSlot(s)}
-                        title={bloqueado ? "Horário já agendado" : "Clique para selecionar"}>
+                        title={diaBloqueado ? "Dia bloqueado pela secretaria" : bloqueado ? "Horário já agendado" : "Clique para selecionar"}>
                         {s}
                         {bloqueado && (
-                          <div style={{ fontSize:9, color:C.gray400, marginTop:2 }}>ocupado</div>
+                          <div style={{ fontSize:9, color:C.gray400, marginTop:2 }}>{diaBloqueado ? "bloqueado" : "ocupado"}</div>
                         )}
                       </button>
                     );
@@ -861,7 +861,7 @@ export default function App() {
               </div>
             )}
 
-            <button className="btn-navy" disabled={!slot} onClick={() => setStep(4)} style={{ width:"100%" }}>
+            <button className="btn-navy" disabled={!slot || diaBloqueado} onClick={() => setStep(4)} style={{ width:"100%" }}>
               Continuar →
             </button>
           </div>
