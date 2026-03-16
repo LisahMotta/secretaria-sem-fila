@@ -23,6 +23,7 @@ const STATUS_CONFIG = {
   concluido:  { label:"Concluído",  color:C.navy   },
 };
 
+const toLocalISO = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 const SLOTS = ["08:00","08:30","09:00","09:30","10:00","10:30","13:00","13:30","14:00","14:30","15:00","15:30"];
 
 const DAYS = (() => {
@@ -348,7 +349,7 @@ function ModoReagendar({ token, onVoltar }) {
           </div>
           <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:16 }}>
             {DAYS.map(d => {
-              const iso = d.toISOString().split("T")[0];
+              const iso = toLocalISO(d);
               const sel = dataSel === iso;
               return (
                 <button key={iso} onClick={() => { setDataSel(iso); setSlotSel(""); }}
