@@ -33,6 +33,7 @@ const DAYS = (() => {
   return days;
 })();
 
+const toLocalISO = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 const fmtDay  = d => d.toLocaleDateString("pt-BR", { weekday:"short", day:"2-digit", month:"short" });
 const fmtFull = d => d.toLocaleDateString("pt-BR", { weekday:"long",  day:"2-digit", month:"long", year:"numeric" });
 const CUR_YEAR = new Date().getFullYear();
@@ -469,7 +470,7 @@ export default function App() {
     if (step !== 2) return;
     Promise.all(
       DAYS.map(d => {
-        const iso = d.toISOString().split("T")[0];
+        const iso = toLocalISO(d);
         return buscarSlotsOcupados(iso).then(r => [iso, r.diaBloqueado || false]).catch(() => [iso, false]);
       })
     ).then(entries => setDiasBloqueados(Object.fromEntries(entries)));
@@ -509,7 +510,7 @@ export default function App() {
     const payload = {
       protocol: proto,
       service: service.id,
-      date: day ? day.toISOString().split("T")[0] : null,
+      date: day ? toLocalISO(day) : null,
       slot: slot || null,
       responsible: { name:form.name, phone:form.phone, obs:form.obs||null, lgpd_consent:true, lgpd_consent_at:new Date().toISOString() },
       ...(needsDocs      ? { doc_types: docType }      : {}),
@@ -772,7 +773,7 @@ export default function App() {
             <p style={{ fontSize:14, color:C.gray400, marginBottom:20 }}>Dias úteis disponíveis.</p>
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:24 }}>
               {DAYS.map((d, i) => {
-                const iso = d.toISOString().split("T")[0];
+                const iso = toLocalISO(d);
                 const bloqueado = diasBloqueados[iso];
                 const selecionado = day?.toDateString() === d.toDateString();
                 return (
@@ -817,7 +818,7 @@ export default function App() {
                 setErroData("");
                 setSlot(null);
                 try {
-                  const dataStr = day.toISOString().split("T")[0];
+                  const dataStr = toLocalISO(day);
                   const result = await buscarSlotsOcupados(dataStr);
                   if (result.diaBloqueado) {
                     setDiaBloqueado(true);

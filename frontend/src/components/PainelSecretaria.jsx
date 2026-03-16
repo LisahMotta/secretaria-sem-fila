@@ -335,8 +335,9 @@ function CardAgendamento({ a, atualizando, onStatus, destacar }) {
 
 // ── Relatório de Faltas ───────────────────────────────────────
 function RelatorioFaltas() {
-  const hoje = new Date().toISOString().split("T")[0];
-  const umMesAtras = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+  const toLocalISO = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  const hoje = toLocalISO(new Date());
+  const umMesAtras = toLocalISO(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
   const [dataInicio, setDataInicio] = useState(umMesAtras);
   const [dataFim, setDataFim]       = useState(hoje);
   const [service, setService]       = useState("");
@@ -462,7 +463,8 @@ function RelatorioFaltas() {
 // ── Painel principal ──────────────────────────────────────────
 export default function PainelSecretaria({ onVoltar }) {
   const [agendamentos, setAgendamentos] = useState([]);
-  const [filtroData, setFiltroData]     = useState(new Date().toISOString().split("T")[0]);
+  const _toLocalISO = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  const [filtroData, setFiltroData]     = useState(_toLocalISO(new Date()));
   const [filtroStatus, setFiltroStatus] = useState("");
   const [filtroServico, setFiltroServico] = useState("");
   const [carregando, setCarregando]     = useState(true);

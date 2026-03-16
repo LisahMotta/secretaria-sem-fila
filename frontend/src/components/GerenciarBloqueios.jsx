@@ -55,7 +55,8 @@ export default function GerenciarBloqueios() {
     catch (e) { alert(e.message); }
   }
 
-  const hoje = new Date().toISOString().split("T")[0];
+  const d = new Date();
+  const hoje = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
   const futuros = bloqueios.filter(b => b.date >= hoje);
   const passados = bloqueios.filter(b => b.date < hoje);
 
